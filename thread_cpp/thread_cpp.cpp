@@ -69,6 +69,17 @@ struct Data
 
 };
 
+void PrintResultingTable()
+{
+    auto m = g_lookup_table.get_map();
+
+    for (auto i = m.begin(); i != m.end(); ++i)
+    {
+        cout << i->first << " " << i->second << "\n";
+    }
+    cout << "\n";
+}
+
 int main()
 {
     srand((unsigned int)time(0));
@@ -88,18 +99,11 @@ int main()
 
         if (ended || input == "exit")
         {
-
             break;
         }
         else if (input == "show")
         {
-            auto m = g_lookup_table.get_map();
-            
-            for (auto i = m.begin(); i != m.end(); ++i)
-            {
-                cout << i->first << " " << i->second << "\n";
-            }
-            cout << "\n";
+            PrintResultingTable();
         }
         /*if (input.length() == 1)
         {
@@ -115,6 +119,9 @@ int main()
     t1.join();
     t2.join();
     t3.join();
+
+    PrintResultingTable();
+
 
     return 0;
 }
