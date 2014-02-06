@@ -80,6 +80,7 @@
     <ClCompile Include="worker.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="database.h" />
     <ClInclude Include="thread_safe_map.h" />
     <ClInclude Include="worker.h" />
   </ItemGroup>
