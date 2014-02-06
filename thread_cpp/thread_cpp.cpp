@@ -34,9 +34,9 @@ void threadFunction()
 
 }
 
-void threadWorkerFunction()
+void threadWorkerFunction( int id )
 {
-    Worker worker( g_lookup_table, cout_lock );
+    Worker worker( id, g_lookup_table, cout_lock );
     while (!g_finish)
     {
         //int time = rand() % 1000;
@@ -82,13 +82,17 @@ void PrintResultingTable()
 
 int main()
 {
-    srand((unsigned int)time(0));
-    std::thread t1(threadWorkerFunction);
-    std::thread t2(threadWorkerFunction);
-    std::thread t3(threadWorkerFunction);
+    //srand((unsigned int)time(0));
+
+    int numWorkers = 20;
+
+    std::vector<std::thread> threads;
+    for (int i = 0; i < numWorkers; ++i)
+        threads.push_back(std::thread(threadWorkerFunction, i + 1) );
+    
 
     string input = "";
-    cout << "Please enter 1 char: ";
+    cout << "Enter command (show|exit)";
     while (true)
     {
         bool ended = !getline(cin, input);
@@ -116,9 +120,8 @@ int main()
 
     g_finish = true;
 
-    t1.join();
-    t2.join();
-    t3.join();
+    for (auto &t : threads)
+        t.join();
 
     PrintResultingTable();
 

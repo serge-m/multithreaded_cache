@@ -22,6 +22,7 @@ class Worker
 
 
     /// Данные
+    int id_; // номер треда
     threadsafe_lookup_table<int, std::string> &lookuptable_;
     std::mutex &cout_mutex_;
     std::random_device rd_;
@@ -78,8 +79,9 @@ public:
     Worker const & operator=(Worker const &) = delete;
 
     
-    Worker(threadsafe_lookup_table<int, std::string> &lookuptable, std::mutex & cout_mutex)
-        : lookuptable_( lookuptable )
+    Worker( int id, threadsafe_lookup_table<int, std::string> &lookuptable, std::mutex & cout_mutex)
+        : id_(id)
+        , lookuptable_( lookuptable )
         , cout_mutex_( cout_mutex )
         , rd_()
         , generator_( rd_() )
@@ -110,6 +112,12 @@ public:
         }
     }
 
+    int GetID()
+    {
+        //std::this_thread::get_id()
+        return id_;
+    }
+
     void ReadAndProcess(int id)
     {
         std::string value = lookuptable_.value_for(id, "");
@@ -118,7 +126,7 @@ public:
         /// output 
         {
             std::unique_lock<std::mutex> lock(cout_mutex_);
-            std::cout << "thread " << std::this_thread::get_id() << " read and processing id: " << id << " Data: " << value << std::endl;
+            std::cout << "thread " << GetID() << " read and processing id: " << id << " Data: " << value << std::endl;
             //std::cout << "thread " << std::this_thread::get_id() << " sleeps " << time << " milliseconds" << std::endl;
         }
 
@@ -142,7 +150,7 @@ public:
         /// output 
         {
             std::unique_lock<std::mutex> lock(cout_mutex_);
-            std::cout << "thread " << std::this_thread::get_id() << " Generating data. ID: " << id << std::endl;
+            std::cout << "thread " << GetID() << " Generating data. ID: " << id << std::endl;
             //std::cout << "thread " << std::this_thread::get_id() << " sleeps " << time << " milliseconds" << std::endl;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds( time ));
@@ -150,7 +158,7 @@ public:
         /// output 
         {
             std::unique_lock<std::mutex> lock(cout_mutex_);
-            std::cout << "thread " << std::this_thread::get_id() << " Result: " << value << std::endl;
+            std::cout << "thread " << GetID() << " Result: " << value << std::endl;
         }
 
         lookuptable_.add_or_update_mapping(id, value);
