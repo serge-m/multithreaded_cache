@@ -12,7 +12,7 @@ class Worker
     static const unsigned percentAll = 100;
 
     static const int maxKey = 20;
-    static const int maxSleepTime = 4000;
+    static const int maxSleepTime = 1000;
 
     typedef enum
     {
