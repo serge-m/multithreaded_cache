@@ -46,7 +46,7 @@ bool g_finish = false;
 
 threadsafe_lookup_table<int, string> g_lookup_table;
 
-
+const int g_autosave_timeout = 2000;
 
 void threadFunction()
 {
@@ -61,6 +61,17 @@ void threadFunction()
 
     }
 
+}
+
+template<typename Type>
+void PrintResultingTable(const Type &m)
+{
+
+    for (auto i = m.begin(); i != m.end(); ++i)
+    {
+        cout << i->first << " " << i->second << "\n";
+    }
+    cout << "\n";
 }
 
 void threadWorkerFunction( int id )
@@ -90,6 +101,50 @@ void threadWorkerFunction( int id )
 
 }
 
+void threadTimeoutSaver()
+{
+    const bool needDebug = true;
+    while (!g_finish)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(g_autosave_timeout));
+        
+        if (needDebug)
+        {
+            {
+                std::lock_guard<mutex> lock(cout_lock);
+                std::cout << "database before save:" << std::endl;
+            }
+            PrintResultingTable(g_lookup_table.get_map_from_database());
+
+            {
+                std::lock_guard<mutex> lock(cout_lock);
+                std::cout << "Cache before save:" << std::endl;
+            }
+            PrintResultingTable(g_lookup_table.get_map());
+        }
+        
+        
+        g_lookup_table.save_to_database();
+        
+        if (needDebug)
+        {
+            {
+                std::lock_guard<mutex> lock(cout_lock);
+                std::cout << "database after save:" << std::endl;
+            }
+            PrintResultingTable(g_lookup_table.get_map_from_database());
+
+            {
+                std::lock_guard<mutex> lock(cout_lock);
+                std::cout << "Cache after save:" << std::endl;
+            }
+            PrintResultingTable(g_lookup_table.get_map());
+        }
+
+    }
+
+}
+
 
 struct Data
 {
@@ -98,16 +153,7 @@ struct Data
 
 };
 
-template<typename Type>
-void PrintResultingTable( const Type &m )
-{
-    
-    for (auto i = m.begin(); i != m.end(); ++i)
-    {
-        cout << i->first << " " << i->second << "\n";
-    }
-    cout << "\n";
-}
+
 
 int main()
 {
@@ -118,7 +164,7 @@ int main()
     std::vector<std::thread> threads;
     for (int i = 0; i < numWorkers; ++i)
         threads.push_back(std::thread(threadWorkerFunction, i + 1) );
-    
+    threads.push_back(std::thread(threadTimeoutSaver));
 
     string input = "";
     cout << "Enter command (show|exit)";
