@@ -28,10 +28,14 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #include "worker.h"
+
 #include <iostream>
 #include <chrono>
+
 #include <thread>
 #include <mutex>
+#include <condition_variable>
+
 #include <string>
 #include "thread_safe_map.h"
 
@@ -47,6 +51,12 @@ bool g_finish = false;
 threadsafe_lookup_table<int, string> g_lookup_table;
 
 const int g_autosave_timeout = 2000;
+
+////////////////////////////////////////////////////////////////////////////////////
+std::mutex                       g_exception_mutex;
+std::vector<std::exception_ptr>  g_exceptions;
+std::condition_variable          g_queuecheck;
+////////////////////////////////////////////////////////////////////////////////////
 
 void threadFunction()
 {
@@ -76,29 +86,22 @@ void PrintResultingTable(const Type &m)
 
 void threadWorkerFunction( int id )
 {
-    Worker worker( id, g_lookup_table, cout_lock );
+    Worker worker(id, g_lookup_table, cout_lock);
     while (!g_finish)
     {
-        //int time = rand() % 1000;
-        /*{
-            std::lock_guard<mutex> lock(cout_lock);
-            std::cout << "thread " << std::this_thread::get_id() << " start " << std::endl;
-
-        }*/
-
-        //std::this_thread::sleep_for(std::chrono::milliseconds( time ));
-        //string s = g_lookup_table.value_for(1, "");
-        //g_lookup_table.add_or_update_mapping(2, "asdasd");
-        worker.Action();
-
-        /*{
-            std::lock_guard<mutex> lock(cout_lock);
-            std::cout << "thread " << std::this_thread::get_id() << " end" << std::endl;
-        }*/
-
+        try
+        {
+            worker.Action();
+        }
+        catch (...)
+        {
+            std::lock_guard<std::mutex> lock(g_exception_mutex);
+            g_exceptions.push_back(std::current_exception());
+            g_queuecheck.notify_one();
+        }
 
     }
-
+    g_queuecheck.notify_one(); // на всяякий случай уведомляем обработчик исключений.
 }
 
 void threadTimeoutSaver()
@@ -145,6 +148,41 @@ void threadTimeoutSaver()
 
 }
 
+/// Не знаю, кто должен обрабатывать исключения о таймауте в потоках.
+/// Пусть это будет отдельный процесс.
+/// Он например, будет прост опечатать информацию о исключении
+void threadExceptionHandler()
+{
+    // до тех пор, пока не будет получен сигнал
+    while (!g_finish)
+    {
+        std::unique_lock<std::mutex> locker(g_exception_mutex);
+        while (!g_finish && g_exceptions.empty()) // от ложных пробуждений
+            g_queuecheck.wait(locker);
+        
+        /// Если нужно остановиться после первого же исключения
+        //g_finish = true; 
+
+        // если есть ошибки в очереди, обрабатывать их
+        for (auto &e : g_exceptions)
+        {
+            try
+            {
+                if (e != nullptr)
+                    std::rethrow_exception(e);
+            }
+            catch (const std::exception &e)
+            {
+                std::lock_guard<std::mutex> locker_cout(cout_lock);
+                std::cout << "Processed exception:" << e.what() << std::endl;
+            }
+        }
+        g_exceptions.clear();
+        //g_notified = false;
+    }
+
+    
+}
 
 struct Data
 {
@@ -159,15 +197,19 @@ int main()
 {
     //srand((unsigned int)time(0));
 
-    int numWorkers = 20;
+    int numWorkers = 5;
+
+    string input = "";
+    cout << "Enter command (show|exit|save)" << endl;
+
 
     std::vector<std::thread> threads;
+    threads.push_back(std::thread(threadExceptionHandler));
+
     for (int i = 0; i < numWorkers; ++i)
         threads.push_back(std::thread(threadWorkerFunction, i + 1) );
     threads.push_back(std::thread(threadTimeoutSaver));
 
-    string input = "";
-    cout << "Enter command (show|exit)";
     while (true)
     {
         bool ended = !getline(cin, input);
@@ -196,6 +238,9 @@ int main()
         }*/
 
         //cout << "Invalid character, please try again" << endl;
+
+
+        
     }
 
     g_finish = true;

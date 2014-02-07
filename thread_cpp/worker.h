@@ -5,6 +5,23 @@
 #include <thread>
 #include "thread_safe_map.h"
 #include <random>
+
+class WorkerException : public std::exception
+{
+    std::string message_;
+public:
+    WorkerException(std::string const & message)
+        : message_(message)
+    {}
+
+    const char * what() const
+    {
+        return message_.c_str();
+    }
+
+
+
+};
 class Worker
 {
     /// Константы
@@ -12,12 +29,14 @@ class Worker
     static const unsigned percentAll = 100;
 
     static const int maxKey = 20;
-    static const int maxSleepTime = 1000;
+    static const int maxSleepTime = 4000;
 
     typedef enum
     {
         ACTION_READ = 0,
         ACTION_WRITE,
+        ACTION_EXCEPTION,
+
     } WorkerAction;
 
 
@@ -38,6 +57,7 @@ class Worker
 
 
         int random_number = distributionActions_(generator_);
+        if (random_number < 30) return ACTION_EXCEPTION;
         return (random_number < percentRead) ? ACTION_READ : ACTION_WRITE;
     }
 
@@ -107,6 +127,12 @@ public:
             GenerateNewValueAndWrite(id);
             break;
         default:
+            std::string message = "Worker " + std::to_string(GetID()) + " exception";
+            {
+                std::lock_guard<std::mutex> lock_cout(cout_mutex_);
+                std::cout << "thread " << GetID() << "Throwing exception." << std::endl;
+            }
+            throw WorkerException(message);
             // something goes wrong
             break;
         }
@@ -126,7 +152,7 @@ public:
         /// output 
         {
             std::unique_lock<std::mutex> lock(cout_mutex_);
-            std::cout << "thread " << GetID() << " read and processing id: " << id << " Data: " << value << std::endl;
+            std::cout << "thread " << GetID() << " read and processing id: " << id << " Data: '" << value << "'" << std::endl;
             //std::cout << "thread " << std::this_thread::get_id() << " sleeps " << time << " milliseconds" << std::endl;
         }
 
@@ -158,7 +184,7 @@ public:
         /// output 
         {
             std::unique_lock<std::mutex> lock(cout_mutex_);
-            std::cout << "thread " << GetID() << " Result: " << value << std::endl;
+            std::cout << "thread " << GetID() << " Generating data. ID: " << id << " Result: '" << value << "'" << std::endl;
         }
 
         lookuptable_.add_or_update_mapping(id, value);
