@@ -98,10 +98,10 @@ struct Data
 
 };
 
-void PrintResultingTable()
+template<typename Type>
+void PrintResultingTable( const Type &m )
 {
-    auto m = g_lookup_table.get_map();
-
+    
     for (auto i = m.begin(); i != m.end(); ++i)
     {
         cout << i->first << " " << i->second << "\n";
@@ -136,8 +136,13 @@ int main()
         }
         else if (input == "show")
         {
-            PrintResultingTable();
+            PrintResultingTable(g_lookup_table.get_map());
         }
+        else if (input == "save")
+        {
+            g_lookup_table.save_to_database();
+        }
+
         /*if (input.length() == 1)
         {
         myChar = input[0];
@@ -152,7 +157,14 @@ int main()
     for (auto &t : threads)
         t.join();
 
-    PrintResultingTable();
+    PrintResultingTable(g_lookup_table.get_map());
+    cout << "-----------------------" << "\n";
+    PrintResultingTable(g_lookup_table.get_map_from_database());
+    g_lookup_table.save_to_database();
+    cout << "-----------------------" << "\n";
+    PrintResultingTable(g_lookup_table.get_map_from_database());
+    cout << "-----------------------" << "\n";
+
 
 
     return 0;

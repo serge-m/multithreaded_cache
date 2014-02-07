@@ -25,4 +25,9 @@ public:
         database_[key] = value;
         return true;
     }
+
+    std::map<Key, Value>  get_map()
+    {
+        return database_;
+    }
 };

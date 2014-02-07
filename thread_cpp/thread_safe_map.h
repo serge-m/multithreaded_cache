@@ -8,6 +8,7 @@
 #include <list>
 #include <memory>
 #include <map>
+#include "database.h"
 
 template<typename Key, typename Value, typename Hash = std::hash<Key> >
 class threadsafe_lookup_table
@@ -27,6 +28,9 @@ private:
     public: // разобраться, как еще можно. Заменить на private/ Исправить конвертацию в map
         bucket_data data;
         mutable std::mutex mutex;
+        Database<Key, Value> &database_;
+
+        
     
     private:    
         /// Пробегаем по списку и ищем элемент с заданным ключом
@@ -42,13 +46,32 @@ private:
                 [&](bucket_value const & item){ return item.first == key;  });
         }
     public:
+
+        bucket_type(Database<Key,Value> & database)
+            : database_(database)
+        {}
+
         /// Возвращаем хранимое значение по ключу, если такой есть
         /// Иначе возвращаем значение по умолчанию
-        Value value_for(Key const &key, Value const &default_value) const
+        Value value_for(Key const &key, Value const &default_value) 
         {
             std::lock_guard<std::mutex> lock(mutex);
             bucket_const_iterator const found_entry = find_entry_for(key);
-            return (found_entry == data.end()) ? default_value : found_entry->second;
+            if (found_entry != data.end())
+            {
+                return found_entry->second;
+            }
+            else
+            {
+                Value value;
+                if (!database_.LoadDataByKey(key, value))
+                {
+                    value = default_value;
+                    database_.WriteData(key, default_value); // тут стоит бросать исключение
+                }
+                data.push_back(bucket_value(key, value));
+                return value;
+            }
         }
 
         void add_or_update_mapping(Key const &key, Value const & value)
@@ -79,6 +102,7 @@ private:
 
     std::vector<std::unique_ptr<bucket_type> > buckets; // здесь храним кластеры
     Hash hasher;
+    Database<Key, Value> database_;
 
     bucket_type &get_bucket(Key const &key) const // находим кластер по ключу
     {
@@ -100,7 +124,7 @@ public:
     {
         for (unsigned int i = 0; i < num_buckets; ++i)
         {
-            buckets[i].reset(new bucket_type); // выделяем память под кластеры
+            buckets[i].reset(new bucket_type(database_)); // выделяем память под кластеры
         }
     }
 
@@ -144,6 +168,30 @@ public:
         return res;
     }
 
+    void threadsafe_lookup_table::save_to_database()
+    {
+        std::vector<std::unique_lock<std::mutex> > locks;
+        for (unsigned int i = 0; i < buckets.size(); ++i)
+        {
+            locks.push_back(std::unique_lock<std::mutex>(buckets[i]->mutex));
+        }
+
+        std::map<Key, Value> res;
+        for (unsigned int i = 0; i < buckets.size(); ++i)
+        {
+            for (bucket_type::bucket_iterator it = buckets[i]->data.begin(); it != buckets[i]->data.end(); )
+            {
+                database_.WriteData(it->first, it->second);
+                it = buckets[i]->data.erase(it);
+            }
+        }
+    }
+
+
+    std::map<Key, Value> threadsafe_lookup_table::get_map_from_database()
+    {
+        return database_.get_map();
+    }
 
 
 };
