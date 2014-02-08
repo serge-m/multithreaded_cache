@@ -48,7 +48,7 @@ std::mutex cout_lock;
 
 bool g_finish = false;
 
-threadsafe_lookup_table<int, string> g_lookup_table;
+threadsafe_lookup_table<int, string> g_lookup_table(cout_lock);
 
 const int g_autosave_timeout = 2000;
 
@@ -76,7 +76,7 @@ void threadFunction()
 template<typename Type>
 void PrintResultingTable(const Type &m)
 {
-
+    std::lock_guard<mutex> lock(cout_lock);
     for (auto i = m.begin(); i != m.end(); ++i)
     {
         cout << i->first << " " << i->second << "\n";
@@ -93,6 +93,13 @@ void threadWorkerFunction( int id )
         {
             worker.Action();
         }
+        catch (const thread_timeout_exception & e)
+        {
+            thread_timeout_exception e_new( "Thread " + to_string(id) + " error." + e.what() );
+            std::lock_guard<std::mutex> lock(g_exception_mutex);
+            g_exceptions.push_back(make_exception_ptr(e_new));
+            g_queuecheck.notify_one();
+        }
         catch (...)
         {
             std::lock_guard<std::mutex> lock(g_exception_mutex);
@@ -106,7 +113,7 @@ void threadWorkerFunction( int id )
 
 void threadTimeoutSaver()
 {
-    const bool needDebug = true;
+    const bool needDebug = false;
     while (!g_finish)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(g_autosave_timeout));
@@ -214,8 +221,11 @@ int main()
     {
         bool ended = !getline(cin, input);
 
-        std::lock_guard<mutex> lock(cout_lock);
-        cout << "Command: " << input << "\n";
+
+        {
+            std::lock_guard<mutex> lock(cout_lock);
+            cout << "Command: " << input << "\n";
+        }
 
 
         if (ended || input == "exit")

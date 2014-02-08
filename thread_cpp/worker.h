@@ -57,7 +57,7 @@ class Worker
 
 
         int random_number = distributionActions_(generator_);
-        if (random_number < 30) return ACTION_EXCEPTION;
+        //if (random_number < 30) return ACTION_EXCEPTION;
         return (random_number < percentRead) ? ACTION_READ : ACTION_WRITE;
     }
 
@@ -69,10 +69,10 @@ class Worker
     std::string GenerateRandomText()
     {
         const int maxPossibleTextLength = 10;
-        std::default_random_engine generator;
+        //std::default_random_engine generator;
         std::uniform_int_distribution<int> distribution(0, maxPossibleTextLength);
 
-        size_t length = distribution(generator);
+        size_t length = distribution(generator_);
 
         auto randchar = []() -> char
         {
@@ -130,7 +130,7 @@ public:
             std::string message = "Worker " + std::to_string(GetID()) + " exception";
             {
                 std::lock_guard<std::mutex> lock_cout(cout_mutex_);
-                std::cout << "thread " << GetID() << "Throwing exception." << std::endl;
+                std::cout << "thread " << GetID() << " Throwing exception." << std::endl;
             }
             throw WorkerException(message);
             // something goes wrong
@@ -146,53 +146,63 @@ public:
 
     void ReadAndProcess(int id)
     {
+        /// output 
+        {
+            std::unique_lock<std::mutex> lock(cout_mutex_);
+            std::cout << "thread " << GetID() << " read id: " << id << std::endl;
+        }
+
         std::string value = lookuptable_.value_for(id, "");
         int time = rand() % maxSleepTime;
 
         /// output 
         {
             std::unique_lock<std::mutex> lock(cout_mutex_);
-            std::cout << "thread " << GetID() << " read and processing id: " << id << " Data: '" << value << "'" << std::endl;
+            std::cout << "thread " << GetID() << " read id: " << id << " result: '" << value << "'" << std::endl;
             //std::cout << "thread " << std::this_thread::get_id() << " sleeps " << time << " milliseconds" << std::endl;
         }
 
-        /// sleep 
-        std::this_thread::sleep_for(std::chrono::milliseconds( time ));
+        /// sleep, processing emulation
+        //std::this_thread::sleep_for(std::chrono::milliseconds( time ));
 
         /// output 
-        {
-            std::unique_lock<std::mutex> lock(cout_mutex_);
-            //std::cout << "thread " << std::this_thread::get_id() << " finished sleep" << std::endl;
-        }
+        //{
+        //    std::unique_lock<std::mutex> lock(cout_mutex_);
+        //    //std::cout << "thread " << std::this_thread::get_id() << " finished sleep" << std::endl;
+        //}
 
     }
 
     void GenerateNewValueAndWrite(int id)
     {
-        int time = rand() % maxSleepTime;
+        //int time = rand() % maxSleepTime;
 
         const std::string value( GenerateRandomText() );
 
-        /// output 
-        {
-            std::unique_lock<std::mutex> lock(cout_mutex_);
-            std::cout << "thread " << GetID() << " Generating data. ID: " << id << std::endl;
-            //std::cout << "thread " << std::this_thread::get_id() << " sleeps " << time << " milliseconds" << std::endl;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds( time ));
+        ///// output 
+        //{
+        //    std::unique_lock<std::mutex> lock(cout_mutex_);
+        //    std::cout << "thread " << GetID() << " Generating data. ID: " << id << std::endl;
+        //    //std::cout << "thread " << std::this_thread::get_id() << " sleeps " << time << " milliseconds" << std::endl;
+        //}
+
+        ///// sleep, processing emulation
+        //std::this_thread::sleep_for(std::chrono::milliseconds(time));
 
         /// output 
         {
             std::unique_lock<std::mutex> lock(cout_mutex_);
-            std::cout << "thread " << GetID() << " Generating data. ID: " << id << " Result: '" << value << "'" << std::endl;
+            std::cout << "thread " << GetID() << " Data generated. ID: " << id << " Result: '" << value << "'" << std::endl;
         }
 
         lookuptable_.add_or_update_mapping(id, value);
+
+        /// output 
+        {
+            std::unique_lock<std::mutex> lock(cout_mutex_);
+            std::cout << "thread " << GetID() << " Data saved. ID: " << id << " Result: '" << value << "'" << std::endl;
+        }
         
 
-        
-
-        /// sleep 
-        std::this_thread::sleep_for(std::chrono::milliseconds());
     }
 };

@@ -10,6 +10,34 @@
 #include <map>
 #include "database.h"
 
+
+class thread_timeout_exception : public std::exception
+{
+    int id_;
+    std::string message_;
+public:
+    thread_timeout_exception(std::string const & message)
+        : message_(message)
+        , id_(0)
+    {}
+
+    const char * what() const
+    {
+        return message_.c_str();
+    }
+    const int thread_id() const 
+    {
+        return id_;
+    }
+    void set_thread_id( int id ) 
+    {
+        id_ = id;
+    }
+
+
+
+};
+
 template<typename Key, typename Value, typename Hash = std::hash<Key> >
 class threadsafe_lookup_table
 {
@@ -17,18 +45,24 @@ private:
     ///////////////////////////////////////////////////////////////////////////
     class bucket_type
     {
+    private :
+        static const int timeForWaitingMax = 1000; /// in milliseconds
+        static const int maxProcessingTime = 4000; /// in milliseconds
+
     private:
         typedef std::pair<Key, Value> bucket_value;
         typedef std::list<bucket_value> bucket_data;
     public:
         typedef typename bucket_data::iterator bucket_iterator;
         typedef typename bucket_data::const_iterator bucket_const_iterator;
-
+        typedef std::timed_mutex bucket_mutex;
     private:
     public: // разобраться, как еще можно. Заменить на private/ Исправить конвертацию в map
         bucket_data data;
-        mutable std::mutex mutex;
+        mutable bucket_mutex mutex;
         Database<Key, Value> &database_;
+        std::mutex & cout_mutex_;
+        std::size_t const idx_;
 
         
     
@@ -47,15 +81,73 @@ private:
         }
     public:
 
-        bucket_type(Database<Key,Value> & database)
-            : database_(database)
+        bucket_type(std::size_t const idx, Database<Key, Value> & database, std::mutex & cout_mutex)
+            : idx_(idx)
+            , database_(database)
+            , cout_mutex_(cout_mutex)
+
         {}
 
+        void EmulateDelay( Key const & key )
+        {
+            ///////////////// pause, emulating delay/////////////////////////////////////////
+            {
+                std::uniform_int_distribution<int> distribution(0, maxProcessingTime);
+                std::random_device rd;
+                std::default_random_engine e1(rd());
+                int sleeptime = distribution( e1 );
+                {
+                    std::lock_guard<std::mutex> lock(cout_mutex_);
+                    cout << "Key " + to_string(key) + " sleep start " << sleeptime << " milliseconds" << endl;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds( sleeptime ));
+                {
+                    std::lock_guard<std::mutex> lock(cout_mutex_);
+                    cout << "Key " + to_string(key) + " sleep finish" << endl;
+                }
+            }
+            ///////////////// pause, emulating delay/////////////////////////////////////////
+        }
+
+        void echo_mutex_start_waiting(Key const &key)
+        {
+            std::lock_guard<std::mutex> lock(cout_mutex_);
+            cout << "Key " << key << ", bucket " << idx_ << ": mutex start waiting" << endl;
+        }
+
+        void echo_mutex_finish_waiting(Key const &key)
+        {
+            std::lock_guard<std::mutex> lock(cout_mutex_);
+            cout << "Key " << key << ", bucket " << idx_ << ": mutex finish waiting" << endl;
+        }
+
+        void echo_mutex_failed_waiting(Key const &key)
+        {
+            std::lock_guard<std::mutex> lock(cout_mutex_);
+            cout << "Key " << key << ", bucket " << idx_ << ": mutex timeout!!!!!!!!!!!!" << endl;
+        }
         /// Возвращаем хранимое значение по ключу, если такой есть
         /// Иначе возвращаем значение по умолчанию
         Value value_for(Key const &key, Value const &default_value) 
         {
-            std::lock_guard<std::mutex> lock(mutex); // Блокируем данный слот
+            //////////////////////////////////////////mutex//////////////////////////////////
+            /// Старый вариант без таймаута 
+            //std::lock_guard<bucket_mutex> lock(mutex); // Блокируем данный слот
+
+            /// Новый вариант
+            echo_mutex_start_waiting(key);
+            if (!mutex.try_lock_for(std::chrono::milliseconds(timeForWaitingMax)))
+            {
+                echo_mutex_failed_waiting(key);
+                throw thread_timeout_exception(" Timeout exception. Target key: " + to_string(key));
+            }
+            std::lock_guard<bucket_mutex> lock(mutex, std::adopt_lock);
+            echo_mutex_finish_waiting(key);
+            //////////////////////////////////////////mutex//////////////////////////////////
+
+            EmulateDelay(key);
+           
+
             bucket_const_iterator const found_entry = find_entry_for(key);
             if (found_entry != data.end())
             {
@@ -76,7 +168,24 @@ private:
 
         void add_or_update_mapping(Key const &key, Value const & value)
         {
-            std::unique_lock<std::mutex> lock(mutex); // Блокируем данный слот
+            //////////////////////////////////////////mutex//////////////////////////////////
+            /// Старый вариант без таймаута 
+            //std::lock_guard<bucket_mutex> lock(mutex); // Блокируем данный слот
+
+            /// Новый вариант
+            echo_mutex_start_waiting(key);
+            if (!mutex.try_lock_for(std::chrono::milliseconds(timeForWaitingMax)))
+            {
+                echo_mutex_failed_waiting(key);
+                throw thread_timeout_exception(" Timeout exception. Target key: " + to_string(key));
+            }
+            std::lock_guard<bucket_mutex> lock(mutex, std::adopt_lock);
+            echo_mutex_finish_waiting(key);
+            //////////////////////////////////////////mutex//////////////////////////////////
+
+            EmulateDelay(key);
+
+
             bucket_iterator found_entry = find_entry_for(key);
             if (found_entry == data.end())
             {
@@ -88,25 +197,44 @@ private:
             }
         }
 
-        void remove_mapping(Key const &key) // не используется
-        {
-            std::unique_lock<std::mutex> lock(mutex);
-            bucket_iterator const found_entry = find_entry_for(key);
-            if (found_entry != data.end())
-            {
-                data.erase(found_entry);
-            }
-        }
+        /// не актуальный код
+        //void remove_mapping(Key const &key) // не используется
+        //{
+        //    //////////////////////////////////////////mutex//////////////////////////////////
+        //    /// Старый вариант без таймаута 
+        //    //std::lock_guard<bucket_mutex> lock(mutex); // Блокируем данный слот
+
+        //    /// Новый вариант
+        //    if (!mutex.try_lock_for(std::chrono::milliseconds(timeForWaitingMax)))
+        //    {
+        //        throw thread_timeout_exception("Timeout exception. Target key: " + key);
+        //    }
+        //    std::lock_guard<bucket_mutex> lock(mutex, std::adopt_lock);
+        //    //////////////////////////////////////////mutex//////////////////////////////////
+
+
+        //    bucket_iterator const found_entry = find_entry_for(key);
+        //    if (found_entry != data.end())
+        //    {
+        //        data.erase(found_entry);
+        //    }
+        //}
     }; //class bucket_type
     ///////////////////////////////////////////////////////////////////////////
 
     std::vector<std::unique_ptr<bucket_type> > buckets; // здесь храним кластеры
     Hash hasher;
     Database<Key, Value> database_;
+    std::mutex & cout_mutex_;
+
+    std::size_t const get_bucket_index(Key const &key) const
+    {
+        return hasher(key) % buckets.size();
+    }
 
     bucket_type &get_bucket(Key const &key) const // находим кластер по ключу
     {
-        std::size_t const bucket_index = hasher(key) % buckets.size();
+        std::size_t const bucket_index = get_bucket_index(key);
         return *buckets[bucket_index];
     }
 
@@ -116,15 +244,17 @@ public:
     typedef Hash hash_type;
 
     threadsafe_lookup_table(
+        std::mutex & cout_mutex,
         unsigned num_buckets = 19,
         Hash const &hasher_ = Hash()
         )
         : buckets(num_buckets)
         , hasher(hasher_)
+        , cout_mutex_(cout_mutex)
     {
         for (unsigned int i = 0; i < num_buckets; ++i)
         {
-            buckets[i].reset(new bucket_type(database_)); // выделяем память под кластеры
+            buckets[i].reset(new bucket_type(i, database_, cout_mutex_)); // выделяем память под кластеры
         }
     }
 
@@ -151,10 +281,10 @@ public:
 
     std::map<Key, Value> threadsafe_lookup_table::get_map() const
     {
-        std::vector<std::unique_lock<std::mutex> > locks;
+        std::vector<std::unique_lock<bucket_type::bucket_mutex> > locks;
         for (unsigned int i = 0; i < buckets.size(); ++i)
         {
-            locks.push_back(std::unique_lock<std::mutex>(buckets[i]->mutex));
+            locks.push_back(std::unique_lock<bucket_type::bucket_mutex>(buckets[i]->mutex));
         }
 
         std::map<Key, Value> res;
@@ -170,10 +300,10 @@ public:
 
     void threadsafe_lookup_table::save_to_database()
     {
-        std::vector<std::unique_lock<std::mutex> > locks;
+        std::vector<std::unique_lock<bucket_type::bucket_mutex> > locks;
         for (unsigned int i = 0; i < buckets.size(); ++i)
         {
-            locks.push_back(std::unique_lock<std::mutex>(buckets[i]->mutex));
+            locks.push_back(std::unique_lock<bucket_type::bucket_mutex>(buckets[i]->mutex));
         }
 
         std::map<Key, Value> res;
