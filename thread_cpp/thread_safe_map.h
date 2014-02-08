@@ -55,7 +55,7 @@ private:
         /// Иначе возвращаем значение по умолчанию
         Value value_for(Key const &key, Value const &default_value) 
         {
-            std::lock_guard<std::mutex> lock(mutex);
+            std::lock_guard<std::mutex> lock(mutex); // Блокируем данный слот
             bucket_const_iterator const found_entry = find_entry_for(key);
             if (found_entry != data.end())
             {
@@ -76,7 +76,7 @@ private:
 
         void add_or_update_mapping(Key const &key, Value const & value)
         {
-            std::unique_lock<std::mutex> lock(mutex);
+            std::unique_lock<std::mutex> lock(mutex); // Блокируем данный слот
             bucket_iterator found_entry = find_entry_for(key);
             if (found_entry == data.end())
             {
@@ -88,7 +88,7 @@ private:
             }
         }
 
-        void remove_mapping(Key const &key)
+        void remove_mapping(Key const &key) // не используется
         {
             std::unique_lock<std::mutex> lock(mutex);
             bucket_iterator const found_entry = find_entry_for(key);
