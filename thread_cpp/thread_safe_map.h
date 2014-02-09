@@ -81,7 +81,7 @@ namespace threadsafe_cache
             get_bucket(key).add_or_update_mapping(key, value);
         }
 
-        std::map<Key, Value> threadsafe_lookup_table::get_map() const
+        std::map<Key, Value> get_map() const
         {
             std::vector<std::unique_lock<current_bucket_type::bucket_mutex> > locks;
             for (unsigned int i = 0; i < buckets.size(); ++i)
