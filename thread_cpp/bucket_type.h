@@ -62,12 +62,12 @@ namespace threadsafe_cache
                 int sleeptime = distribution(e1);
                 /*{
                 std::lock_guard<std::mutex> lock(cout_mutex_);
-                cout << "Key " + to_string(key) + " sleep start " << sleeptime << " milliseconds" << endl;
+                cout << "Key " + to_string(key) + " sleep start " << sleeptime << " milliseconds" << std::endl;
                 }*/
                 std::this_thread::sleep_for(std::chrono::milliseconds(sleeptime));
                 /*{
                 std::lock_guard<std::mutex> lock(cout_mutex_);
-                cout << "Key " + to_string(key) + " sleep finish" << endl;
+                cout << "Key " + to_string(key) + " sleep finish" << std::endl;
                 }*/
             }
             ///////////////// pause, emulating delay/////////////////////////////////////////
@@ -78,7 +78,7 @@ namespace threadsafe_cache
             //auto time = millis_since_midnight();
             std::lock_guard<std::mutex> lock(cout_mutex_);
             //cout << time << " ";
-            std::cout << "Key " << key << ", bucket " << idx_ << ": mutex start waiting" << endl;
+            std::cout << "Key " << key << ", bucket " << idx_ << ": mutex start waiting" << std::endl;
         }
 
         void echo_mutex_finish_waiting(Key const &key)
@@ -86,7 +86,7 @@ namespace threadsafe_cache
             //auto time = millis_since_midnight();
             std::lock_guard<std::mutex> lock(cout_mutex_);
             //cout << time << " ";
-            std::cout << "Key " << key << ", bucket " << idx_ << ": mutex acquired" << endl;
+            std::cout << "Key " << key << ", bucket " << idx_ << ": mutex acquired" << std::endl;
         }
 
         void echo_mutex_failed_waiting(Key const &key)
@@ -94,7 +94,7 @@ namespace threadsafe_cache
             //auto time = millis_since_midnight();
             std::lock_guard<std::mutex> lock(cout_mutex_);
             //cout << time << " ";
-            std::cout << "Key " << key << ", bucket " << idx_ << ": mutex timeout!!!!!!!!!!!!" << endl;
+            std::cout << "Key " << key << ", bucket " << idx_ << ": mutex timeout!!!!!!!!!!!!" << std::endl;
         }
 
         void echo_mutex_released(Key const &key)
@@ -102,7 +102,7 @@ namespace threadsafe_cache
             //auto time = millis_since_midnight();
             std::lock_guard<std::mutex> lock(cout_mutex_);
             //cout << time << " ";
-            std::cout << "Key " << key << ", bucket " << idx_ << ": mutex released" << endl;
+            std::cout << "Key " << key << ", bucket " << idx_ << ": mutex released" << std::endl;
         }
 
         void wait_for_mutex(Key const &key)
