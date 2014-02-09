@@ -195,10 +195,12 @@ private:
             else
             {
                 Value value;
-                if (!database_.LoadDataByKey(key, value))
+                
+                if (!database_.LoadDataByKey(key, value)) 
                 {
                     value = default_value;
-                    database_.WriteData(key, default_value); // тут стоит бросать исключение
+                    /// Можно сразу записывать в заду пустое значение. Но не понятно, зачем
+                    //database_.WriteData(key, default_value); 
                 }
                 data.push_back(bucket_value(key, value));
                 echo_mutex_released(key);
@@ -364,7 +366,10 @@ public:
         return database_.get_map();
     }
 
-
+    void threadsafe_lookup_table::show_db()
+    {
+        return database_.show_db();
+    }
 };
 
 

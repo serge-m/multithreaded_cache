@@ -77,7 +77,6 @@ void threadFunction()
 template<typename Type>
 void PrintResultingTable(const Type &m)
 {
-    std::lock_guard<mutex> lock(cout_lock);
     for (auto i = m.begin(); i != m.end(); ++i)
     {
         cout << i->first << " " << i->second << "\n";
@@ -114,42 +113,42 @@ void threadWorkerFunction( int id )
 
 void threadTimeoutSaver()
 {
-    const bool needDebug = false;
+    const bool needDebug = true;
     while (!g_finish)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(g_autosave_timeout));
-        
+
         if (needDebug)
         {
-            {
-                std::lock_guard<mutex> lock(cout_lock);
-                std::cout << "database before save:" << std::endl;
-            }
-            PrintResultingTable(g_lookup_table.get_map_from_database());
-
-            {
-                std::lock_guard<mutex> lock(cout_lock);
-                std::cout << "Cache before save:" << std::endl;
-            }
-            PrintResultingTable(g_lookup_table.get_map());
+            auto m = g_lookup_table.get_map();
+            std::lock_guard<mutex> lock(cout_lock);
+            g_lookup_table.show_db();
+            //PrintResultingTable(g_lookup_table.get_map_from_database());
+            std::cout << "Cache before save:" << std::endl;
+            PrintResultingTable(m);
         }
-        
-        
-        g_lookup_table.save_to_database();
-        
+
+        try
+        {
+            g_lookup_table.save_to_database();
+        }
+        catch (...)
+        {
+            std::lock_guard<std::mutex> lock(g_exception_mutex);
+            g_exceptions.push_back(std::current_exception());
+            g_queuecheck.notify_one();
+        }
+
         if (needDebug)
         {
-            {
-                std::lock_guard<mutex> lock(cout_lock);
-                std::cout << "database after save:" << std::endl;
-            }
-            PrintResultingTable(g_lookup_table.get_map_from_database());
+            auto m = g_lookup_table.get_map();
+            std::lock_guard<mutex> lock(cout_lock);
+            std::cout << "database after save:" << std::endl;
+            g_lookup_table.show_db();
+            //PrintResultingTable(g_lookup_table.get_map_from_database());
 
-            {
-                std::lock_guard<mutex> lock(cout_lock);
-                std::cout << "Cache after save:" << std::endl;
-            }
-            PrintResultingTable(g_lookup_table.get_map());
+            std::cout << "Cache after save:" << std::endl;
+            PrintResultingTable(m);
         }
 
     }
@@ -217,7 +216,7 @@ int main()
 {
     //srand((unsigned int)time(0));
 
-    int numWorkers = 5;
+    int numWorkers = 3;
 
     string input = "";
     cout << "Enter command (show|exit|save)" << endl;
@@ -253,6 +252,11 @@ int main()
         {
             g_lookup_table.save_to_database();
         }
+        else
+        {
+            std::lock_guard<mutex> lock(cout_lock);
+            cout << "ERROR: Unknown command: " << input << "\n";
+        }
 
         /*if (input.length() == 1)
         {
@@ -267,6 +271,7 @@ int main()
     }
 
     g_finish = true;
+    g_queuecheck.notify_one(); // уведомляем обработчик исключений.
 
     for (auto &t : threads)
         t.join();
