@@ -30,6 +30,7 @@
 #include "worker.h"
 
 #include <iostream>
+#include <iomanip>
 #include <chrono>
 
 #include <thread>
@@ -80,7 +81,7 @@ void PrintResultingTable(const Type &m)
 {
     for (auto i = m.begin(); i != m.end(); ++i)
     {
-        cout << i->first << " " << i->second << "\n";
+        cout << setw(10) << i->first << " " << i->second << "\n";
     }
     cout << "\n";
 }
