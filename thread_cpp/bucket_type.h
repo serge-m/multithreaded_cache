@@ -104,6 +104,18 @@ namespace threadsafe_cache
             //cout << time << " ";
             cout << "Key " << key << ", bucket " << idx_ << ": mutex released" << endl;
         }
+
+        void wait_for_mutex(Key const &key)
+        {
+            echo_mutex_start_waiting(key);
+            if (!mutex.try_lock_for(std::chrono::milliseconds(timeForWaitingMax)))
+            {
+                echo_mutex_failed_waiting(key);
+                stringstream ss;
+                ss << " Timeout exception. Target key: " << key;
+                throw threadsafe_cache_exception(ss.str());
+            }
+        }
         /// Возвращаем хранимое значение по ключу, если такой есть
         /// Иначе возвращаем значение по умолчанию
         Value value_for(Key const &key, Value const &default_value)
@@ -113,14 +125,7 @@ namespace threadsafe_cache
             //std::lock_guard<bucket_mutex> lock(mutex); // Блокируем данный слот
 
             /// Новый вариант
-            echo_mutex_start_waiting(key);
-            if (!mutex.try_lock_for(std::chrono::milliseconds(timeForWaitingMax)))
-            {
-                echo_mutex_failed_waiting(key);
-                stringstream ss;
-                ss << " Timeout exception. Target key: " << key;
-                throw thread_timeout_exception(ss.str());
-            }
+            wait_for_mutex(key);
             std::lock_guard<bucket_mutex> lock(mutex, std::adopt_lock);
             echo_mutex_finish_waiting(key);
             //////////////////////////////////////////mutex//////////////////////////////////
@@ -157,14 +162,7 @@ namespace threadsafe_cache
             //std::lock_guard<bucket_mutex> lock(mutex); // Блокируем данный слот
 
             /// Новый вариант
-            echo_mutex_start_waiting(key);
-            if (!mutex.try_lock_for(std::chrono::milliseconds(timeForWaitingMax)))
-            {
-                echo_mutex_failed_waiting(key);
-                stringstream ss;
-                ss << " Timeout exception. Target key: " << key;
-                throw thread_timeout_exception(ss.str());
-            }
+            wait_for_mutex(key);
             std::lock_guard<bucket_mutex> lock(mutex, std::adopt_lock);
             //////////////////////////////////////////mutex//////////////////////////////////
             echo_mutex_finish_waiting(key);
