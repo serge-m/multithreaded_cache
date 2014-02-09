@@ -239,7 +239,7 @@ public:
         {
             std::cout << "Deleting table..." << "\n";
 
-            std::string sqlDrop(std::string("drop table ") + dbname + ";");
+            std::string sqlDrop(std::string("drop table if exists ") + dbname + ";");
             connection_.execute(sqlDrop.c_str(), callback_empty, "Creating table");
             
             std::cout << "Table is deleted" << "\n";
