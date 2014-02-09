@@ -168,7 +168,7 @@ public:
     {
         std::stringstream request;
         request
-            << "select value from "
+            << "select " << value_field_name << " from "
             << dbname 
             << " where " << id_field_name << " = '" << k << "';";
         query_result qresult;
