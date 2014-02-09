@@ -5,6 +5,7 @@
 #include <sqlite3.h>
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 
 //namespace
 //{
