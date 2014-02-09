@@ -29,6 +29,10 @@ public:
         return message_.c_str();
     }
 
+    virtual ~database_exception() throw()
+    {
+    }
+
 };
 
 struct query_result
