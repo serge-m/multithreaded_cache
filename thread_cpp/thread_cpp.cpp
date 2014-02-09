@@ -238,7 +238,7 @@ int main()
         << "" << endl
         << "Press enter to start" << endl;
 
-    std::getline(cin, std::string());
+    std::getline(cin, (std::string()));
 
 
     database_connector<string, string> database(g_need_drop_table);
