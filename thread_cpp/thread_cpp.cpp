@@ -238,7 +238,7 @@ int main()
         << "" << endl
         << "Press enter to start" << endl;
 
-    getline(cin, std::string());
+    std::getline(cin, std::string());
 
 
     database_connector<string, string> database(g_need_drop_table);
@@ -258,7 +258,7 @@ int main()
 
     while (true)
     {
-        bool ended = !getline(cin, input);
+        bool ended = !std::getline(cin, input);
 
         {
             std::lock_guard<mutex> lock(cout_lock);
