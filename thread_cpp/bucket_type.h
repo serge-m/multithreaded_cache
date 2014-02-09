@@ -121,10 +121,6 @@ namespace threadsafe_cache
         Value value_for(Key const &key, Value const &default_value)
         {
             //////////////////////////////////////////mutex//////////////////////////////////
-            /// Старый вариант без таймаута 
-            //std::lock_guard<bucket_mutex> lock(mutex); // Блокируем данный слот
-
-            /// Новый вариант
             wait_for_mutex(key);
             std::lock_guard<bucket_mutex> lock(mutex, std::adopt_lock);
             echo_mutex_finish_waiting(key);
@@ -158,10 +154,6 @@ namespace threadsafe_cache
         void add_or_update_mapping(Key const &key, Value const & value)
         {
             //////////////////////////////////////////mutex//////////////////////////////////
-            /// Старый вариант без таймаута 
-            //std::lock_guard<bucket_mutex> lock(mutex); // Блокируем данный слот
-
-            /// Новый вариант
             wait_for_mutex(key);
             std::lock_guard<bucket_mutex> lock(mutex, std::adopt_lock);
             //////////////////////////////////////////mutex//////////////////////////////////
