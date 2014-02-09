@@ -83,16 +83,16 @@ namespace threadsafe_cache
 
         std::map<Key, Value> get_map() const
         {
-            std::vector<std::unique_lock<current_bucket_type::bucket_mutex> > locks;
+            std::vector<std::unique_lock<typename current_bucket_type::bucket_mutex> > locks;
             for (unsigned int i = 0; i < buckets.size(); ++i)
             {
-                locks.push_back(std::unique_lock<current_bucket_type::bucket_mutex>(buckets[i]->mutex));
+                locks.push_back(std::unique_lock<typename current_bucket_type::bucket_mutex>(buckets[i]->mutex));
             }
 
             std::map<Key, Value> res;
             for (unsigned int i = 0; i < buckets.size(); ++i)
             {
-                for (current_bucket_type::bucket_iterator it = buckets[i]->data.begin(); it != buckets[i]->data.end(); ++it)
+                for (auto it = buckets[i]->data.begin(); it != buckets[i]->data.end(); ++it)
                 {
                     res.insert(*it);
                 }
@@ -102,16 +102,16 @@ namespace threadsafe_cache
 
         void save_to_database()
         {
-            std::vector<std::unique_lock<current_bucket_type::bucket_mutex> > locks;
+            std::vector<std::unique_lock<typename current_bucket_type::bucket_mutex> > locks;
             for (unsigned int i = 0; i < buckets.size(); ++i)
             {
-                locks.push_back(std::unique_lock<current_bucket_type::bucket_mutex>(buckets[i]->mutex));
+                locks.push_back(std::unique_lock<typename current_bucket_type::bucket_mutex>(buckets[i]->mutex));
             }
 
             std::map<Key, Value> res;
             for (unsigned int i = 0; i < buckets.size(); ++i)
             {
-                for (current_bucket_type::bucket_iterator it = buckets[i]->data.begin(); it != buckets[i]->data.end();)
+                for (auto it = buckets[i]->data.begin(); it != buckets[i]->data.end();)
                 {
                     database_.save_data(it->first, it->second);
                     it = buckets[i]->data.erase(it);
