@@ -238,8 +238,10 @@ int main()
         << "" << endl
         << "Press enter to start" << endl;
 
-    std::getline(cin, (std::string()));
-
+    {
+        std::string tmp;
+        std::getline(cin, tmp);
+    }
 
     database_connector<string, string> database(g_need_drop_table);
     threadsafe_cache::threadsafe_lookup_table<string, string> g_lookup_table(database, cout_lock);
