@@ -1,5 +1,6 @@
 #include <random>
 #include <mutex>
+#include "threadsafe_cache_exception.h"
 
 namespace threadsafe_cache
 {
