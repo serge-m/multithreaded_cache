@@ -8,6 +8,12 @@
 #include <list>
 #include <memory>
 #include <map>
+
+
+///////DEBUG
+#include <chrono>
+////////////
+
 #include "database.h"
 
 
@@ -46,8 +52,8 @@ private:
     class bucket_type
     {
     private :
-        static const int timeForWaitingMax = 1000; /// in milliseconds
-        static const int maxProcessingTime = 4000; /// in milliseconds
+        static const int timeForWaitingMax = 2000; /// in milliseconds
+        static const int maxProcessingTime = 1000; /// in milliseconds
 
     private:
         typedef std::pair<Key, Value> bucket_value;
@@ -96,35 +102,67 @@ private:
                 std::random_device rd;
                 std::default_random_engine e1(rd());
                 int sleeptime = distribution( e1 );
-                {
+                /*{
                     std::lock_guard<std::mutex> lock(cout_mutex_);
                     cout << "Key " + to_string(key) + " sleep start " << sleeptime << " milliseconds" << endl;
-                }
+                }*/
                 std::this_thread::sleep_for(std::chrono::milliseconds( sleeptime ));
-                {
+                /*{
                     std::lock_guard<std::mutex> lock(cout_mutex_);
                     cout << "Key " + to_string(key) + " sleep finish" << endl;
-                }
+                }*/
             }
             ///////////////// pause, emulating delay/////////////////////////////////////////
         }
 
+        //unsigned __int64 millis_since_midnight()
+        //{
+        //    // current time
+        //    std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+
+        //    // get midnight
+        //    time_t tnow = std::chrono::system_clock::to_time_t(now);
+        //    tm *date = localtime(&tnow);
+        //    date->tm_hour = 0;
+        //    date->tm_min = 0;
+        //    date->tm_sec = 0;
+        //    auto midnight = std::chrono::system_clock::from_time_t(mktime(date));
+
+        //    // number of milliseconds between midnight and now, ie current time in millis
+        //    // The same technique can be used for time since epoch
+        //    return std::chrono::duration_cast<std::chrono::milliseconds>(now - midnight).count();
+        //}
+
         void echo_mutex_start_waiting(Key const &key)
         {
+            //auto time = millis_since_midnight();
             std::lock_guard<std::mutex> lock(cout_mutex_);
+            //cout << time << " ";
             cout << "Key " << key << ", bucket " << idx_ << ": mutex start waiting" << endl;
         }
 
         void echo_mutex_finish_waiting(Key const &key)
         {
+            //auto time = millis_since_midnight();
             std::lock_guard<std::mutex> lock(cout_mutex_);
-            cout << "Key " << key << ", bucket " << idx_ << ": mutex finish waiting" << endl;
+            //cout << time << " ";
+            cout << "Key " << key << ", bucket " << idx_ << ": mutex acquired" << endl;
         }
 
         void echo_mutex_failed_waiting(Key const &key)
         {
+            //auto time = millis_since_midnight();
             std::lock_guard<std::mutex> lock(cout_mutex_);
+            //cout << time << " ";
             cout << "Key " << key << ", bucket " << idx_ << ": mutex timeout!!!!!!!!!!!!" << endl;
+        }
+
+        void echo_mutex_released(Key const &key)
+        {
+            //auto time = millis_since_midnight();
+            std::lock_guard<std::mutex> lock(cout_mutex_);
+            //cout << time << " ";
+            cout << "Key " << key << ", bucket " << idx_ << ": mutex released" << endl;
         }
         /// Возвращаем хранимое значение по ключу, если такой есть
         /// Иначе возвращаем значение по умолчанию
@@ -151,6 +189,7 @@ private:
             bucket_const_iterator const found_entry = find_entry_for(key);
             if (found_entry != data.end())
             {
+                echo_mutex_released(key);
                 return found_entry->second;
             }
             else
@@ -162,6 +201,7 @@ private:
                     database_.WriteData(key, default_value); // тут стоит бросать исключение
                 }
                 data.push_back(bucket_value(key, value));
+                echo_mutex_released(key);
                 return value;
             }
         }
@@ -180,8 +220,8 @@ private:
                 throw thread_timeout_exception(" Timeout exception. Target key: " + to_string(key));
             }
             std::lock_guard<bucket_mutex> lock(mutex, std::adopt_lock);
-            echo_mutex_finish_waiting(key);
             //////////////////////////////////////////mutex//////////////////////////////////
+            echo_mutex_finish_waiting(key);
 
             EmulateDelay(key);
 
@@ -195,6 +235,7 @@ private:
             {
                 found_entry->second = value;
             }
+            echo_mutex_released(key);
         }
 
         /// не актуальный код
