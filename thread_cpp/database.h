@@ -206,10 +206,6 @@ public:
         connection_.execute(request.str().c_str(), callback_empty, "Writing data");
     }
 
-    std::map<Key, Value>  get_map()
-    {
-        return database_;
-    }
 
     void show_db()
     {
@@ -229,7 +225,7 @@ public:
         : connection_()
         
     {
-        stringstream ss;
+        std::stringstream ss;
         
         if (!connection_.is_opened())
         {
@@ -252,7 +248,7 @@ public:
         
         std::cout << "Creating table..." << "\n";
 
-        stringstream ss_sqlCreate;
+        std::stringstream ss_sqlCreate;
         ss_sqlCreate
             << "create table if not exists "
             << dbname
