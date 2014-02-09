@@ -21,7 +21,7 @@ public:
 
     }
 
-    char const * what() const
+    char const * what() const throw()
     {
         return message_.c_str();
     }
