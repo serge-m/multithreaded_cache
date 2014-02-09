@@ -146,21 +146,21 @@ public:
 
     void ReadAndProcess(int id)
     {
-        /// output 
+        /*/// output 
         {
             std::unique_lock<std::mutex> lock(cout_mutex_);
             std::cout << "thread " << GetID() << " read id: " << id << std::endl;
-        }
+        }*/
 
         std::string value = lookuptable_.value_for(id, "");
-        int time = rand() % maxSleepTime;
+        //int time = rand() % maxSleepTime;
 
-        /// output 
-        {
-            std::unique_lock<std::mutex> lock(cout_mutex_);
-            std::cout << "thread " << GetID() << " read id: " << id << " result: '" << value << "'" << std::endl;
-            //std::cout << "thread " << std::this_thread::get_id() << " sleeps " << time << " milliseconds" << std::endl;
-        }
+        ///// output 
+        //{
+        //    std::unique_lock<std::mutex> lock(cout_mutex_);
+        //    std::cout << "thread " << GetID() << " read id: " << id << " result: '" << value << "'" << std::endl;
+        //    //std::cout << "thread " << std::this_thread::get_id() << " sleeps " << time << " milliseconds" << std::endl;
+        //}
 
         /// sleep, processing emulation
         //std::this_thread::sleep_for(std::chrono::milliseconds( time ));
@@ -189,19 +189,19 @@ public:
         ///// sleep, processing emulation
         //std::this_thread::sleep_for(std::chrono::milliseconds(time));
 
-        /// output 
+        /*/// output 
         {
             std::unique_lock<std::mutex> lock(cout_mutex_);
             std::cout << "thread " << GetID() << " Data generated. ID: " << id << " Result: '" << value << "'" << std::endl;
-        }
+        }*/
 
         lookuptable_.add_or_update_mapping(id, value);
 
-        /// output 
+        /*/// output 
         {
             std::unique_lock<std::mutex> lock(cout_mutex_);
             std::cout << "thread " << GetID() << " Data saved. ID: " << id << " Result: '" << value << "'" << std::endl;
-        }
+        }*/
         
 
     }
