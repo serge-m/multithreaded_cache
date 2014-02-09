@@ -38,13 +38,12 @@ class Worker
         ACTION_READ = 0,
         ACTION_WRITE,
         ACTION_EXCEPTION,
-
     } WorkerAction;
 
 
     /// Данные
     int id_; // номер треда
-    threadsafe_lookup_table<Key, Value> &lookuptable_;
+    threadsafe_cache::threadsafe_lookup_table<Key, Value> &lookuptable_;
     std::mutex &cout_mutex_;
     std::random_device rd_;
     std::default_random_engine generator_;
@@ -98,7 +97,7 @@ public:
     Worker const & operator=(Worker const &) = delete;
 
     
-    Worker( int id, threadsafe_lookup_table<Key, Value> &lookuptable, std::mutex & cout_mutex)
+    Worker( int id, threadsafe_cache::threadsafe_lookup_table<Key, Value> &lookuptable, std::mutex & cout_mutex)
         : id_(id)
         , lookuptable_( lookuptable )
         , cout_mutex_( cout_mutex )
