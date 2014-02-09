@@ -120,10 +120,10 @@ namespace threadsafe_cache
         }
 
 
-        std::map<Key, Value> threadsafe_lookup_table::get_map_from_database()
+        /*std::map<Key, Value> threadsafe_lookup_table::get_map_from_database()
         {
             return database_.get_map();
-        }
+        }*/
 
         void threadsafe_lookup_table::show_db()
         {

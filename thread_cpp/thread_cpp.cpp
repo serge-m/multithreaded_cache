@@ -45,13 +45,16 @@
 
 using namespace std;
 
+const bool g_need_drop_table = true;
+const bool g_show_database_and_cache_on_save = true;
+
+const int g_autosave_timeout = 2000;
+
+////////////////////////////////////////////////////////////////////////////////////
 std::mutex g_lock;
 std::mutex cout_lock;
 
-bool g_finish = false;
-bool g_need_drop_table = true;
-
-const int g_autosave_timeout = 2000;
+bool g_finish = false; /// флаг дл€ оповещени€ о завершении работы
 
 ////////////////////////////////////////////////////////////////////////////////////
 std::mutex                       g_exception_mutex;
@@ -59,18 +62,6 @@ std::vector<std::exception_ptr>  g_exceptions;
 std::condition_variable          g_queuecheck;
 ////////////////////////////////////////////////////////////////////////////////////
 
-void threadFunction()
-{
-    while (!g_finish)
-    {
-
-        std::lock_guard<mutex> lock(cout_lock);
-        std::cout << "entered thread " << std::this_thread::get_id() << std::endl;
-        //std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 4000));
-        std::cout << "leaving thread " << std::this_thread::get_id() << std::endl;
-    }
-
-}
 
 template<typename Type>
 void PrintResultingTable(const Type &m)
@@ -98,12 +89,6 @@ void threadWorkerFunction(int id, threadsafe_cache::threadsafe_lookup_table<stri
             g_exceptions.push_back(make_exception_ptr(e_new));
             g_queuecheck.notify_one();
         }
-        /*catch (...)
-        {
-            std::lock_guard<std::mutex> lock(g_exception_mutex);
-            g_exceptions.push_back(std::current_exception());
-            g_queuecheck.notify_one();
-        }*/
 
     }
     g_queuecheck.notify_one(); // на вс€€кий случай уведомл€ем обработчик исключений.
@@ -111,17 +96,15 @@ void threadWorkerFunction(int id, threadsafe_cache::threadsafe_lookup_table<stri
 
 void threadTimeoutSaver(threadsafe_cache::threadsafe_lookup_table<string, string> *lookup_table)
 {
-    const bool needDebug = true;
     while (!g_finish)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(g_autosave_timeout));
 
-        if (needDebug)
+        if (g_show_database_and_cache_on_save)
         {
             auto m = lookup_table->get_map();
             std::lock_guard<mutex> lock(cout_lock);
             lookup_table->show_db();
-            //PrintResultingTable(g_lookup_table.get_map_from_database());
             std::cout << "Cache before save:" << std::endl;
             PrintResultingTable(m);
         }
@@ -137,14 +120,12 @@ void threadTimeoutSaver(threadsafe_cache::threadsafe_lookup_table<string, string
             g_queuecheck.notify_one();
         }
 
-        if (needDebug)
+        if (g_show_database_and_cache_on_save)
         {
             auto m = lookup_table->get_map();
             std::lock_guard<mutex> lock(cout_lock);
             std::cout << "database after save:" << std::endl;
             lookup_table->show_db();
-            //PrintResultingTable(g_lookup_table.get_map_from_database());
-
             std::cout << "Cache after save:" << std::endl;
             PrintResultingTable(m);
         }
@@ -283,10 +264,14 @@ int main()
 
     PrintResultingTable(g_lookup_table.get_map());
     cout << "-----------------------" << "\n";
-    PrintResultingTable(g_lookup_table.get_map_from_database());
-    g_lookup_table.save_to_database();
+    cout << "database state before las save:" << endl;
+    g_lookup_table.show_db();
     cout << "-----------------------" << "\n";
-    PrintResultingTable(g_lookup_table.get_map_from_database());
+    g_lookup_table.save_to_database();
+    cout << "Cache saved." << endl;
+    cout << "-----------------------" << "\n";
+    cout << "final database state:" << endl;
+    g_lookup_table.show_db();
     cout << "-----------------------" << "\n";
 
 
