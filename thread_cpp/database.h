@@ -1,14 +1,17 @@
+#ifndef database_h__
+#define database_h__
+
 #include <map>
 #include <sqlite3.h>
 #include <iostream>
 #include <iomanip>
 
-namespace
-{
-    const char * dbname = "t5";
-    const char * id_field_name = "key";
-    const char * value_field_name = "data";
-}
+//namespace
+//{
+    static const char * dbname = "t5";
+    static const char * id_field_name = "key";
+    static const char * value_field_name = "data";
+//}
 
 class database_exception : public std::exception
 {
@@ -264,3 +267,4 @@ public:
         std::cout << "Database is closed" << "\n";
     }
 };
+#endif // database_h__
