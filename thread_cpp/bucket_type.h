@@ -7,8 +7,8 @@ namespace threadsafe_cache
     class bucket_type
     {
     private:
-        static const int timeForWaitingMax = 2000; /// in milliseconds
-        static const int maxProcessingTime = 1000; /// in milliseconds
+        static const int timeForWaitingMax = 2000; /// максимальное время, которое тред может ждать мьютекса, in milliseconds
+        static const int maxProcessingTime = 500; /// максимальное время, которое тред "обрабатывает" данные (эмуляция),in milliseconds
 
     private:
         typedef std::pair<Key, Value> bucket_value;                 /// тип для пары <key, value>

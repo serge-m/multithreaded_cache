@@ -13,11 +13,10 @@ template<typename Key, typename Value>
 class worker
 {
     /// Константы
-    static const unsigned percentRead = 50;
+    static const unsigned percentRead = 50;     // чтений среди всех вызовов. 
     static const unsigned percentAll = 100;
 
-    static const int maxKey = 20;
-    static const int maxSleepTime = 4000;
+    static const int maxKey = 20;               /// максимальный айдишник в случае если ключ - целочисленный - int
 
     typedef enum
     {
@@ -28,17 +27,18 @@ class worker
 
 
     /// Данные
-    int id_; // номер треда
-    threadsafe_cache::threadsafe_lookup_table<Key, Value> &lookuptable_;
-    std::mutex &cout_mutex_;
-    std::random_device rd_;
+    int id_;                                                                /// номер треда
+    threadsafe_cache::threadsafe_lookup_table<Key, Value> &lookuptable_;    /// ссылка на кэш
+    std::mutex &cout_mutex_;                                                /// мьютекс для дебажного вывода
+    
+    std::random_device rd_;                                                 /// пачка переменных для генерации случайного контента
     std::default_random_engine generator_;
     std::uniform_int_distribution<int> distributionActions_;
-    std::uniform_int_distribution<int> distributionID_;
+    std::uniform_int_distribution<int> distributionID_;                     /// нужно для генерации целочисленных ключей 
 
     
 
-
+    /// генерируем, что будем делать (читать/писать)
     WorkerAction generate_action()
     {
 
@@ -48,9 +48,10 @@ class worker
         return (random_number < percentRead) ? ACTION_READ : ACTION_WRITE;
     }
 
+    /// генерируем случайныйи ключ
     Key generate_key();
-    
 
+    /// генерируем случайный текст с заданным допустимым диапазоном длинны
     std::string generate_random_text(const int minPossibleTextLength = 1, const int maxPossibleTextLength = 10 )
     {
         //std::default_random_engine generator;
@@ -97,7 +98,7 @@ public:
     }
 
 
-
+    /// выполняем работу
     void action()
     {
         WorkerAction action = generate_action();
@@ -122,6 +123,7 @@ public:
         }
     }
 
+    /// выдает идентификатор данного рабочего
     int get_id()
     {
         //std::this_thread::get_id()
@@ -145,7 +147,7 @@ public:
 
 
 //////////////////////////
-
+/// специализации шаблонов
 template<>
 int worker<int, std::string>::generate_key()
 {
