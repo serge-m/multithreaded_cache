@@ -83,12 +83,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="database.cpp" />
+    <ClCompile Include="threadsafe_cache_exception.cpp" />
     <ClCompile Include="thread_cpp.cpp" />
     <ClCompile Include="worker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bucket_type.h" />
     <ClInclude Include="database.h" />
+    <ClInclude Include="threadsafe_cache_exception.h" />
     <ClInclude Include="thread_safe_map.h" />
     <ClInclude Include="worker.h" />
   </ItemGroup>

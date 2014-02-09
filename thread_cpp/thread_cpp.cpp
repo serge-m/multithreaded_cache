@@ -40,7 +40,7 @@
 #include <string>
 #include <sstream>
 #include "thread_safe_map.h"
-
+#include "threadsafe_cache_exception.h"
 
 
 using namespace std;
@@ -97,7 +97,7 @@ void threadWorkerFunction( int id )
         }
         catch (const std::exception & e)
         {
-            threadsafe_cache::thread_timeout_exception e_new( "Thread " + to_string(id) + " error." + e.what() );
+            threadsafe_cache::threadsafe_cache_exception e_new( "Thread " + to_string(id) + " error." + e.what() );
             std::lock_guard<std::mutex> lock(g_exception_mutex);
             g_exceptions.push_back(make_exception_ptr(e_new));
             g_queuecheck.notify_one();
@@ -159,7 +159,7 @@ void threadTimeoutSaver()
 
 /// Не знаю, кто должен обрабатывать исключения о таймауте в потоках.
 /// Пусть это будет отдельный процесс.
-/// Он например, будет прост опечатать информацию о исключении
+/// Он например, будет просто печатать информацию о исключении
 void threadExceptionHandler()
 {
 

@@ -20,32 +20,7 @@
 namespace threadsafe_cache
 {
 
-    class thread_timeout_exception : public std::exception
-    {
-        int id_;
-        std::string message_;
-    public:
-        thread_timeout_exception(std::string const & message)
-            : message_(message)
-            , id_(0)
-        {}
-
-        const char * what() const
-        {
-            return message_.c_str();
-        }
-        const int thread_id() const
-        {
-            return id_;
-        }
-        void set_thread_id(int id)
-        {
-            id_ = id;
-        }
-
-
-
-    };
+    
 
     template<typename Key, typename Value, typename Hash = std::hash<Key> >
     class threadsafe_lookup_table
