@@ -100,7 +100,7 @@ namespace threadsafe_cache
             return res;
         }
 
-        void threadsafe_lookup_table::save_to_database()
+        void save_to_database()
         {
             std::vector<std::unique_lock<current_bucket_type::bucket_mutex> > locks;
             for (unsigned int i = 0; i < buckets.size(); ++i)
@@ -125,7 +125,7 @@ namespace threadsafe_cache
             return database_.get_map();
         }*/
 
-        void threadsafe_lookup_table::show_db()
+        void show_db()
         {
             return database_.show_db();
         }
