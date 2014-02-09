@@ -32,7 +32,7 @@ namespace threadsafe_cache
 
         std::vector<std::unique_ptr<current_bucket_type> > buckets; // здесь храним кластеры
         Hash hasher;                                                /// Для вычисления хэша
-        Database<Key, Value> & database_;                           /// Адаптер базы данных
+        database_connector<Key, Value> & database_;                           /// Адаптер базы данных
         std::mutex & cout_mutex_;                                   /// Мьютекс для дебажного вывода
 
         std::size_t const get_bucket_index(Key const &key) const
@@ -49,7 +49,7 @@ namespace threadsafe_cache
     public:
 
         threadsafe_lookup_table(
-            Database<Key, Value> & database,
+            database_connector<Key, Value> & database,
             std::mutex & cout_mutex,
             unsigned num_buckets = 19,
             Hash const &hasher_ = Hash()
@@ -113,7 +113,7 @@ namespace threadsafe_cache
             {
                 for (current_bucket_type::bucket_iterator it = buckets[i]->data.begin(); it != buckets[i]->data.end();)
                 {
-                    database_.WriteData(it->first, it->second);
+                    database_.save_data(it->first, it->second);
                     it = buckets[i]->data.erase(it);
                 }
             }

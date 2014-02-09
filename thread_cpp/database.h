@@ -10,12 +10,12 @@ namespace
     const char * value_field_name = "data";
 }
 
-class DatabaseException : public std::exception
+class database_exception : public std::exception
 {
 private:
     std::string message_;
 public:
-    DatabaseException(char const * message)
+    database_exception(char const * message)
         : message_(message)
     {
 
@@ -62,7 +62,7 @@ static int callback_show_dp(void *data, int argc, char **argv, char **azColName)
     return 0;
 }
 
-static int my_callback(void *data, int argc, char **argv, char **azColName)
+static int callback_with_results(void *data, int argc, char **argv, char **azColName)
 {
     query_result * result = static_cast<query_result*>(data);
     if (result != nullptr)
@@ -108,7 +108,7 @@ public:
             is_opened_ = true;
         }
 
-        std::cout << sqlite3_threadsafe() << "!!!!!!!!!!!!!!!!!!!\n";
+        std::cout << "SQLite threadsafe = " << sqlite3_threadsafe() << "\n";
     }
 
     std::string get_message() const
@@ -135,16 +135,16 @@ public:
         {
             std::string message = std::string("SQL error: ") + zErrMsg;
             sqlite3_free(zErrMsg);
-            throw DatabaseException(message.c_str());
+            throw database_exception(message.c_str());
         }
     }
 };
 
 template<typename Key, typename Value>
-class Database
+class database_connector
 {
 private:
-    std::map<Key, Value> database_;
+    //std::map<Key, Value> database_;
     sqlite_connection connection_;
 
 
@@ -170,7 +170,7 @@ public:
     //    return true;
     //}
 
-    bool LoadDataByKey(const Key & k, Value & result)
+    bool load_data_by_key(const Key & k, Value & result)
     {
         std::stringstream request;
         request
@@ -178,7 +178,7 @@ public:
             << dbname 
             << " where " << id_field_name << " = '" << k << "';";
         query_result qresult;
-        connection_.execute(request.str().c_str(), my_callback, &qresult);
+        connection_.execute(request.str().c_str(), callback_with_results, &qresult);
 
         if (qresult.is_empty)
             return false;
@@ -187,7 +187,7 @@ public:
         return true;
     }
 
-    void WriteData(const Key & key, const Value & value)
+    void save_data(const Key & key, const Value & value)
     {
         std::stringstream request;
         request 
@@ -214,10 +214,10 @@ public:
     }
 
 
-    Database(const Database &) = delete;
-    Database &operator=(const Database &) = delete;
+    database_connector(const database_connector &) = delete;
+    database_connector &operator=(const database_connector &) = delete;
 
-    Database( bool need_drop_table )
+    database_connector( bool need_drop_table )
         : connection_()
         
     {
@@ -225,7 +225,7 @@ public:
         
         if (!connection_.is_opened())
         {
-            throw DatabaseException(connection_.get_message().c_str());
+            throw database_exception(connection_.get_message().c_str());
         }
         
         std::cout << "Database opened" << "\n";
@@ -259,7 +259,7 @@ public:
 
 
 
-    ~Database()
+    ~database_connector()
     {
         std::cout << "Database is closed" << "\n";
     }

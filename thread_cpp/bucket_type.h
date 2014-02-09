@@ -22,7 +22,7 @@ namespace threadsafe_cache
     public: // разобраться, как еще можно. Заменить на private/ Исправить конвертацию в map
         bucket_data data;                   /// список <ключ значение>
         mutable bucket_mutex mutex;         /// мьютекс для защиты данных 
-        Database<Key, Value> &database_;    /// ссылка на базу данных, чтобы читать оттуда записи
+        database_connector<Key, Value> &database_;    /// ссылка на базу данных, чтобы читать оттуда записи
         std::mutex & cout_mutex_;           /// мьютекс для вывода на экран
         std::size_t const idx_;
 
@@ -45,7 +45,7 @@ namespace threadsafe_cache
         }
     public:
 
-        bucket_type(std::size_t const idx, Database<Key, Value> & database, std::mutex & cout_mutex)
+        bucket_type(std::size_t const idx, database_connector<Key, Value> & database, std::mutex & cout_mutex)
             : idx_(idx)
             , database_(database)
             , cout_mutex_(cout_mutex)
@@ -139,7 +139,7 @@ namespace threadsafe_cache
             {
                 Value value;
 
-                if (!database_.LoadDataByKey(key, value))
+                if (!database_.load_data_by_key(key, value))
                 {
                     value = default_value;
                     /// Можно сразу записывать в базу пустое значение. Но не понятно, зачем

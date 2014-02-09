@@ -209,7 +209,7 @@ int main()
     getline(cin, std::string());
 
 
-    Database<string, string> database(g_need_drop_table);
+    database_connector<string, string> database(g_need_drop_table);
     threadsafe_cache::threadsafe_lookup_table<string, string> g_lookup_table(database, cout_lock);
 
 
