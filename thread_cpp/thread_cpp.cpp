@@ -49,7 +49,7 @@ std::mutex cout_lock;
 
 bool g_finish = false;
 
-threadsafe_lookup_table<int, string> g_lookup_table(cout_lock);
+threadsafe_lookup_table<string, string> g_lookup_table(cout_lock);
 
 const int g_autosave_timeout = 2000;
 
@@ -86,7 +86,7 @@ void PrintResultingTable(const Type &m)
 
 void threadWorkerFunction( int id )
 {
-    Worker worker(id, g_lookup_table, cout_lock);
+    Worker < std::string, std::string> worker(id, g_lookup_table, cout_lock);
     while (!g_finish)
     {
         try

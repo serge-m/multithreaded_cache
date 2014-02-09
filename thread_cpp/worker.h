@@ -22,6 +22,8 @@ public:
 
 
 };
+
+template<typename Key, typename Value>
 class Worker
 {
     /// Константы
@@ -42,7 +44,7 @@ class Worker
 
     /// Данные
     int id_; // номер треда
-    threadsafe_lookup_table<int, std::string> &lookuptable_;
+    threadsafe_lookup_table<Key, Value> &lookuptable_;
     std::mutex &cout_mutex_;
     std::random_device rd_;
     std::default_random_engine generator_;
@@ -61,16 +63,13 @@ class Worker
         return (random_number < percentRead) ? ACTION_READ : ACTION_WRITE;
     }
 
-    int GenID()
-    {
-        return distributionID_(generator_);
-    }
+    Key GenID();
+    
 
-    std::string GenerateRandomText()
+    std::string GenerateRandomText(const int minPossibleTextLength = 1, const int maxPossibleTextLength = 10 )
     {
-        const int maxPossibleTextLength = 10;
         //std::default_random_engine generator;
-        std::uniform_int_distribution<int> distribution(0, maxPossibleTextLength);
+        std::uniform_int_distribution<int> distribution(minPossibleTextLength, maxPossibleTextLength);
 
         size_t length = distribution(generator_);
 
@@ -99,7 +98,7 @@ public:
     Worker const & operator=(Worker const &) = delete;
 
     
-    Worker( int id, threadsafe_lookup_table<int, std::string> &lookuptable, std::mutex & cout_mutex)
+    Worker( int id, threadsafe_lookup_table<Key, Value> &lookuptable, std::mutex & cout_mutex)
         : id_(id)
         , lookuptable_( lookuptable )
         , cout_mutex_( cout_mutex )
@@ -117,14 +116,14 @@ public:
     void Action()
     {
         WorkerAction action = GenAction();
-        int id = GenID();
+        Key key = GenID();
         switch (action)
         {
         case ACTION_READ:
-            ReadAndProcess(id);
+            ReadAndProcess(key);
             break;
         case ACTION_WRITE:
-            GenerateNewValueAndWrite(id);
+            GenerateNewValueAndWrite(key);
             break;
         default:
             std::string message = "Worker " + std::to_string(GetID()) + " exception";
@@ -144,7 +143,7 @@ public:
         return id_;
     }
 
-    void ReadAndProcess(int id)
+    void ReadAndProcess(Key key)
     {
         /*/// output 
         {
@@ -152,7 +151,7 @@ public:
             std::cout << "thread " << GetID() << " read id: " << id << std::endl;
         }*/
 
-        std::string value = lookuptable_.value_for(id, "");
+        Value value = lookuptable_.value_for(key, "");
         //int time = rand() % maxSleepTime;
 
         ///// output 
@@ -173,7 +172,7 @@ public:
 
     }
 
-    void GenerateNewValueAndWrite(int id)
+    void GenerateNewValueAndWrite(Key key)
     {
         //int time = rand() % maxSleepTime;
 
@@ -195,7 +194,7 @@ public:
             std::cout << "thread " << GetID() << " Data generated. ID: " << id << " Result: '" << value << "'" << std::endl;
         }*/
 
-        lookuptable_.add_or_update_mapping(id, value);
+        lookuptable_.add_or_update_mapping(key, value);
 
         /*/// output 
         {
@@ -206,3 +205,18 @@ public:
 
     }
 };
+
+
+//////////////////////////
+
+template<>
+int Worker<int, std::string>::GenID()
+{
+    return distributionID_(generator_);
+}
+
+template<>
+std::string Worker<std::string, std::string>::GenID()
+{
+    return GenerateRandomText(1,3);
+}

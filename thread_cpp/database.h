@@ -1,11 +1,11 @@
 #include <map>
 #include <sqlite3.h>
 #include <iostream>
-
+#include <iomanip>
 
 namespace
 {
-    const char * dbname = "t4";
+    const char * dbname = "t5";
 }
 
 class DatabaseException : public std::exception
@@ -47,6 +47,7 @@ static int callback_show_dp(void *data, int argc, char **argv, char **azColName)
     //for (i = 0; i<argc; i++)
     {
         std::cout
+            << std::setw(10)
             << (argv[0] ? argv[0] : "NULL")
             << " "
             << (argv[1] ? argv[1] : "NULL")
@@ -169,9 +170,9 @@ public:
         request
             << "select value from "
             << dbname 
-            << " where id = "
+            << " where id = '"
             << k
-            << ";";
+            << "';";
         query_result qresult;
         connection_.execute(request.str().c_str(), my_callback, &qresult);
 
@@ -188,9 +189,9 @@ public:
         request 
             << "insert or replace into "
             << dbname
-            << " (id, value) values("
+            << " (id, value) values('"
             << key 
-            << ", '" 
+            << "', '" 
             << value 
             << "');";
         connection_.execute(request.str().c_str(), callback, "Writing data" );
@@ -236,7 +237,7 @@ public:
         /*std::string sqlDrop(std::string("drop table ") + dbname + ";");
         connection_.execute( sqlDrop.c_str(), callback, "Creating table");*/
         
-        std::string sqlCreate(std::string("create table if not exists ") + dbname + " ( id int , value varchar, primary key(id));");
+        std::string sqlCreate(std::string("create table if not exists ") + dbname + " ( id varchar, value text, primary key(id));");
         connection_.execute(sqlCreate.c_str(), callback, "Creating table");
         
         std::cout << "Table is created (or exists)" << "\n";

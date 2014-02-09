@@ -177,7 +177,9 @@ private:
             if (!mutex.try_lock_for(std::chrono::milliseconds(timeForWaitingMax)))
             {
                 echo_mutex_failed_waiting(key);
-                throw thread_timeout_exception(" Timeout exception. Target key: " + to_string(key));
+                stringstream ss;
+                ss << " Timeout exception. Target key: " << key;
+                throw thread_timeout_exception( ss.str() );
             }
             std::lock_guard<bucket_mutex> lock(mutex, std::adopt_lock);
             echo_mutex_finish_waiting(key);
@@ -219,7 +221,9 @@ private:
             if (!mutex.try_lock_for(std::chrono::milliseconds(timeForWaitingMax)))
             {
                 echo_mutex_failed_waiting(key);
-                throw thread_timeout_exception(" Timeout exception. Target key: " + to_string(key));
+                stringstream ss;
+                ss << " Timeout exception. Target key: " << key;
+                throw thread_timeout_exception(ss.str());
             }
             std::lock_guard<bucket_mutex> lock(mutex, std::adopt_lock);
             //////////////////////////////////////////mutex//////////////////////////////////
