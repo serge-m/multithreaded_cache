@@ -14,11 +14,12 @@ namespace threadsafe_cache
             : message_(message)
         {}
 
-        const char * what() const
+        const char * what() const throw()
         {
             return message_.c_str();
         }
-
+        ~threadsafe_cache_exception() throw()
+        {}
 
     };
 }
