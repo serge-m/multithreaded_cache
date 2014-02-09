@@ -271,7 +271,7 @@ private:
 
     std::vector<std::unique_ptr<bucket_type> > buckets; // здесь храним кластеры
     Hash hasher;
-    Database<Key, Value> database_;
+    Database<Key, Value> & database_;
     std::mutex & cout_mutex_;
 
     std::size_t const get_bucket_index(Key const &key) const
@@ -291,12 +291,14 @@ public:
     typedef Hash hash_type;
 
     threadsafe_lookup_table(
+        Database<Key, Value> & database,
         std::mutex & cout_mutex,
         unsigned num_buckets = 19,
         Hash const &hasher_ = Hash()
         )
         : buckets(num_buckets)
         , hasher(hasher_)
+        , database_(database)
         , cout_mutex_(cout_mutex)
     {
         for (unsigned int i = 0; i < num_buckets; ++i)

@@ -21,6 +21,11 @@ public:
 
     }
 
+    char const * what() const
+    {
+        return message_.c_str();
+    }
+
 };
 
 struct query_result
@@ -29,21 +34,21 @@ struct query_result
     std::string value;
 };
 
-static int callback(void *data, int argc, char **argv, char **azColName){
-    int i;
-    if (data != nullptr)
+static int callback_empty(void *data, int argc, char **argv, char **azColName)
+{
+    /*for (int i = 0; i<argc; i++)
     {
-        fprintf(stderr, "%s: ", (const char*)data);
-    }
-    for (i = 0; i<argc; i++){
-        printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-    }
-
-    printf("\n");
+        std::cout 
+            << azColName[i] 
+            << (argv[i] ? argv[i] : "NULL")
+            << '\n';
+    }*/
+    
     return 0;
 }
 
-static int callback_show_dp(void *data, int argc, char **argv, char **azColName){
+static int callback_show_dp(void *data, int argc, char **argv, char **azColName)
+{
     //for (int i = 0; i<argc; i++)
     {
         std::cout
@@ -144,6 +149,7 @@ private:
 
 
 public:
+
     //bool LoadDataByKey(const Key & k, Value & result)
     //{
     //    auto it = database_.find(k);
@@ -156,7 +162,7 @@ public:
     //    {
     //        return false;
     //    }
-    //}
+    //} 
 
     //bool WriteData(const Key & key, const Value & value)
     //{
@@ -189,7 +195,7 @@ public:
             << dbname
             << " ( " << id_field_name << ", " << value_field_name << ") " 
             << "values('" << key << "', '" << value << "');";
-        connection_.execute(request.str().c_str(), callback, "Writing data" );
+        connection_.execute(request.str().c_str(), callback_empty, "Writing data");
     }
 
     std::map<Key, Value>  get_map()
@@ -208,9 +214,12 @@ public:
     }
 
 
+    Database(const Database &) = delete;
+    Database &operator=(const Database &) = delete;
 
-    Database()
+    Database( bool need_drop_table )
         : connection_()
+        
     {
         stringstream ss;
         
@@ -221,24 +230,27 @@ public:
         
         std::cout << "Database opened" << "\n";
 
-        std::cout << "Creating table..." << "\n";
-        /// check if table exists
-        /*char * sql =
-            "IF EXISTS(SELECT 1"
-            "FROM INFORMATION_SCHEMA.TABLES"
-            "WHERE TABLE_TYPE = 'BASE TABLE'"
-            "AND TABLE_NAME = 'mytablename')"
-            "SELECT 1 AS res ELSE SELECT 0 AS res;";*/
-        /*std::string sqlDrop(std::string("drop table ") + dbname + ";");
-        connection_.execute( sqlDrop.c_str(), callback, "Creating table");*/
         
+        if (need_drop_table)
+        {
+            std::cout << "Deleting table..." << "\n";
+
+            std::string sqlDrop(std::string("drop table ") + dbname + ";");
+            connection_.execute(sqlDrop.c_str(), callback_empty, "Creating table");
+            
+            std::cout << "Table is deleted" << "\n";
+
+        }
+        
+        std::cout << "Creating table..." << "\n";
+
         stringstream ss_sqlCreate;
         ss_sqlCreate
             << "create table if not exists "
             << dbname
             << " ( " << id_field_name << " varchar, " << value_field_name << " text, primary key(" << id_field_name << "));"
             ;
-        connection_.execute(ss_sqlCreate.str().c_str(), callback, "Creating table");
+        connection_.execute(ss_sqlCreate.str().c_str(), callback_empty, "Creating table");
         
         std::cout << "Table is created (or exists)" << "\n";
 
@@ -249,7 +261,6 @@ public:
 
     ~Database()
     {
-        
-        std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!closed!!!!!!!!!!!!" << "\n";
+        std::cout << "Database is closed" << "\n";
     }
 };

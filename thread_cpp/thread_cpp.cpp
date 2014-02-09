@@ -48,8 +48,9 @@ std::mutex g_lock;
 std::mutex cout_lock;
 
 bool g_finish = false;
-
-threadsafe_lookup_table<string, string> g_lookup_table(cout_lock);
+bool g_need_drop_table = true;
+Database<string, string> database(g_need_drop_table);
+threadsafe_lookup_table<string, string> g_lookup_table(database, cout_lock);
 
 const int g_autosave_timeout = 2000;
 
@@ -93,19 +94,19 @@ void threadWorkerFunction( int id )
         {
             worker.Action();
         }
-        catch (const thread_timeout_exception & e)
+        catch (const std::exception & e)
         {
             thread_timeout_exception e_new( "Thread " + to_string(id) + " error." + e.what() );
             std::lock_guard<std::mutex> lock(g_exception_mutex);
             g_exceptions.push_back(make_exception_ptr(e_new));
             g_queuecheck.notify_one();
         }
-        catch (...)
+        /*catch (...)
         {
             std::lock_guard<std::mutex> lock(g_exception_mutex);
             g_exceptions.push_back(std::current_exception());
             g_queuecheck.notify_one();
-        }
+        }*/
 
     }
     g_queuecheck.notify_one(); // на вс€€кий случай уведомл€ем обработчик исключений.
