@@ -50,8 +50,6 @@ std::mutex cout_lock;
 
 bool g_finish = false;
 bool g_need_drop_table = true;
-Database<string, string> database(g_need_drop_table);
-threadsafe_cache::threadsafe_lookup_table<string, string> g_lookup_table(database, cout_lock);
 
 const int g_autosave_timeout = 2000;
 
@@ -70,8 +68,6 @@ void threadFunction()
         std::cout << "entered thread " << std::this_thread::get_id() << std::endl;
         //std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 4000));
         std::cout << "leaving thread " << std::this_thread::get_id() << std::endl;
-
-
     }
 
 }
@@ -86,9 +82,9 @@ void PrintResultingTable(const Type &m)
     cout << "\n";
 }
 
-void threadWorkerFunction( int id )
+void threadWorkerFunction(int id, threadsafe_cache::threadsafe_lookup_table<string, string> *lookup_table)
 {
-    Worker < std::string, std::string> worker(id, g_lookup_table, cout_lock);
+    Worker < std::string, std::string> worker(id, *lookup_table, cout_lock);
     while (!g_finish)
     {
         try
@@ -113,7 +109,7 @@ void threadWorkerFunction( int id )
     g_queuecheck.notify_one(); // на всяякий случай уведомляем обработчик исключений.
 }
 
-void threadTimeoutSaver()
+void threadTimeoutSaver(threadsafe_cache::threadsafe_lookup_table<string, string> *lookup_table)
 {
     const bool needDebug = true;
     while (!g_finish)
@@ -122,9 +118,9 @@ void threadTimeoutSaver()
 
         if (needDebug)
         {
-            auto m = g_lookup_table.get_map();
+            auto m = lookup_table->get_map();
             std::lock_guard<mutex> lock(cout_lock);
-            g_lookup_table.show_db();
+            lookup_table->show_db();
             //PrintResultingTable(g_lookup_table.get_map_from_database());
             std::cout << "Cache before save:" << std::endl;
             PrintResultingTable(m);
@@ -132,7 +128,7 @@ void threadTimeoutSaver()
 
         try
         {
-            g_lookup_table.save_to_database();
+            lookup_table->save_to_database();
         }
         catch (...)
         {
@@ -143,10 +139,10 @@ void threadTimeoutSaver()
 
         if (needDebug)
         {
-            auto m = g_lookup_table.get_map();
+            auto m = lookup_table->get_map();
             std::lock_guard<mutex> lock(cout_lock);
             std::cout << "database after save:" << std::endl;
-            g_lookup_table.show_db();
+            lookup_table->show_db();
             //PrintResultingTable(g_lookup_table.get_map_from_database());
 
             std::cout << "Cache after save:" << std::endl;
@@ -205,31 +201,47 @@ void threadExceptionHandler()
     
 }
 
-struct Data
-{
-    bool isChanged;
-    bool isLocked;
-
-};
-
-
 
 int main()
 {
-    //srand((unsigned int)time(0));
 
-    int numWorkers = 3;
+    int numWorkers = 10;
 
     string input = "";
-    cout << "Enter command (show|exit|save)" << endl;
+
+    cout
+        << "Cache for database" << endl
+        << "This program generates a lot of debug information during work" << endl
+        << "To break processing enter 'exit<enter>' or 'Ctrl+Z<enter>' for Windows or 'Ctrl+D<enter>' for linux" << endl
+        << "Ctrl+C is not processing correctly" << endl;
+    cout
+        << "" << endl
+        << "Available commands: " << endl
+        << "    show - displays contents of database and cache" << endl
+        << "    exit - terminates processing" << endl
+        << "    save - save cache contents to database" << endl;
+
+    cout
+        << "" << endl
+        << "Press enter to start" << endl;
+
+    getline(cin, std::string());
+
+
+    Database<string, string> database(g_need_drop_table);
+    threadsafe_cache::threadsafe_lookup_table<string, string> g_lookup_table(database, cout_lock);
 
 
     std::vector<std::thread> threads;
+    /// Запускаем тред для обработки исключений
     threads.push_back(std::thread(threadExceptionHandler));
 
+    /// Запускаем рабочие треды 
     for (int i = 0; i < numWorkers; ++i)
-        threads.push_back(std::thread(threadWorkerFunction, i + 1) );
-    threads.push_back(std::thread(threadTimeoutSaver));
+        threads.push_back(std::thread(threadWorkerFunction, i + 1, &g_lookup_table));
+
+    /// Запускаем тред для периодического сохранения кэша в базу данных
+    threads.push_back(std::thread(threadTimeoutSaver, &g_lookup_table));
 
     while (true)
     {
@@ -248,7 +260,9 @@ int main()
         }
         else if (input == "show")
         {
-            PrintResultingTable(g_lookup_table.get_map());
+            auto m = g_lookup_table.get_map();
+            std::lock_guard<mutex> lock(cout_lock);
+            PrintResultingTable(m);
         }
         else if (input == "save")
         {
