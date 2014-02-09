@@ -78,7 +78,7 @@ namespace threadsafe_cache
             //auto time = millis_since_midnight();
             std::lock_guard<std::mutex> lock(cout_mutex_);
             //cout << time << " ";
-            cout << "Key " << key << ", bucket " << idx_ << ": mutex start waiting" << endl;
+            std::cout << "Key " << key << ", bucket " << idx_ << ": mutex start waiting" << endl;
         }
 
         void echo_mutex_finish_waiting(Key const &key)
@@ -86,7 +86,7 @@ namespace threadsafe_cache
             //auto time = millis_since_midnight();
             std::lock_guard<std::mutex> lock(cout_mutex_);
             //cout << time << " ";
-            cout << "Key " << key << ", bucket " << idx_ << ": mutex acquired" << endl;
+            std::cout << "Key " << key << ", bucket " << idx_ << ": mutex acquired" << endl;
         }
 
         void echo_mutex_failed_waiting(Key const &key)
@@ -94,7 +94,7 @@ namespace threadsafe_cache
             //auto time = millis_since_midnight();
             std::lock_guard<std::mutex> lock(cout_mutex_);
             //cout << time << " ";
-            cout << "Key " << key << ", bucket " << idx_ << ": mutex timeout!!!!!!!!!!!!" << endl;
+            std::cout << "Key " << key << ", bucket " << idx_ << ": mutex timeout!!!!!!!!!!!!" << endl;
         }
 
         void echo_mutex_released(Key const &key)
@@ -102,7 +102,7 @@ namespace threadsafe_cache
             //auto time = millis_since_midnight();
             std::lock_guard<std::mutex> lock(cout_mutex_);
             //cout << time << " ";
-            cout << "Key " << key << ", bucket " << idx_ << ": mutex released" << endl;
+            std::cout << "Key " << key << ", bucket " << idx_ << ": mutex released" << endl;
         }
 
         void wait_for_mutex(Key const &key)
@@ -111,7 +111,7 @@ namespace threadsafe_cache
             if (!mutex.try_lock_for(std::chrono::milliseconds(timeForWaitingMax)))
             {
                 echo_mutex_failed_waiting(key);
-                stringstream ss;
+                std::stringstream ss;
                 ss << " Timeout exception. Target key: " << key;
                 throw threadsafe_cache_exception(ss.str());
             }
