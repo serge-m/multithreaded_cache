@@ -6,25 +6,11 @@
 #include "thread_safe_map.h"
 #include <random>
 
-class WorkerException : public std::exception
-{
-    std::string message_;
-public:
-    WorkerException(std::string const & message)
-        : message_(message)
-    {}
+#include "threadsafe_cache_exception.h"
 
-    const char * what() const
-    {
-        return message_.c_str();
-    }
-
-
-
-};
 
 template<typename Key, typename Value>
-class Worker
+class worker
 {
     /// Константы
     static const unsigned percentRead = 50;
@@ -53,7 +39,7 @@ class Worker
     
 
 
-    WorkerAction GenAction()
+    WorkerAction generate_action()
     {
 
 
@@ -62,10 +48,10 @@ class Worker
         return (random_number < percentRead) ? ACTION_READ : ACTION_WRITE;
     }
 
-    Key GenID();
+    Key generate_key();
     
 
-    std::string GenerateRandomText(const int minPossibleTextLength = 1, const int maxPossibleTextLength = 10 )
+    std::string generate_random_text(const int minPossibleTextLength = 1, const int maxPossibleTextLength = 10 )
     {
         //std::default_random_engine generator;
         std::uniform_int_distribution<int> distribution(minPossibleTextLength, maxPossibleTextLength);
@@ -90,14 +76,14 @@ class Worker
 
 public:
 
-    Worker() = delete;
+    worker() = delete;
 
     /// запретить копирование
-    Worker(Worker const &) = delete;
-    Worker const & operator=(Worker const &) = delete;
+    worker(worker const &) = delete;
+    worker const & operator=(worker const &) = delete;
 
     
-    Worker( int id, threadsafe_cache::threadsafe_lookup_table<Key, Value> &lookuptable, std::mutex & cout_mutex)
+    worker( int id, threadsafe_cache::threadsafe_lookup_table<Key, Value> &lookuptable, std::mutex & cout_mutex)
         : id_(id)
         , lookuptable_( lookuptable )
         , cout_mutex_( cout_mutex )
@@ -112,95 +98,47 @@ public:
 
 
 
-    void Action()
+    void action()
     {
-        WorkerAction action = GenAction();
-        Key key = GenID();
+        WorkerAction action = generate_action();
+        Key key = generate_key();
         switch (action)
         {
         case ACTION_READ:
-            ReadAndProcess(key);
+            read_and_process(key);
             break;
         case ACTION_WRITE:
-            GenerateNewValueAndWrite(key);
+            generate_new_value_and_write(key);
             break;
         default:
-            std::string message = "Worker " + std::to_string(GetID()) + " exception";
+            std::string message = "Worker " + std::to_string(get_id()) + " exception";
             {
                 std::lock_guard<std::mutex> lock_cout(cout_mutex_);
-                std::cout << "thread " << GetID() << " Throwing exception." << std::endl;
+                std::cout << "thread " << get_id() << " Throwing exception." << std::endl;
             }
-            throw WorkerException(message);
+            throw threadsafe_cache::threadsafe_cache_exception(message);
             // something goes wrong
             break;
         }
     }
 
-    int GetID()
+    int get_id()
     {
         //std::this_thread::get_id()
         return id_;
     }
 
-    void ReadAndProcess(Key key)
+    void read_and_process(Key key)
     {
-        /*/// output 
-        {
-            std::unique_lock<std::mutex> lock(cout_mutex_);
-            std::cout << "thread " << GetID() << " read id: " << id << std::endl;
-        }*/
-
         Value value = lookuptable_.value_for(key, "");
-        //int time = rand() % maxSleepTime;
-
-        ///// output 
-        //{
-        //    std::unique_lock<std::mutex> lock(cout_mutex_);
-        //    std::cout << "thread " << GetID() << " read id: " << id << " result: '" << value << "'" << std::endl;
-        //    //std::cout << "thread " << std::this_thread::get_id() << " sleeps " << time << " milliseconds" << std::endl;
-        //}
-
-        /// sleep, processing emulation
-        //std::this_thread::sleep_for(std::chrono::milliseconds( time ));
-
-        /// output 
-        //{
-        //    std::unique_lock<std::mutex> lock(cout_mutex_);
-        //    //std::cout << "thread " << std::this_thread::get_id() << " finished sleep" << std::endl;
-        //}
-
     }
 
-    void GenerateNewValueAndWrite(Key key)
+    void generate_new_value_and_write(Key key)
     {
-        //int time = rand() % maxSleepTime;
 
-        const std::string value( GenerateRandomText() );
-
-        ///// output 
-        //{
-        //    std::unique_lock<std::mutex> lock(cout_mutex_);
-        //    std::cout << "thread " << GetID() << " Generating data. ID: " << id << std::endl;
-        //    //std::cout << "thread " << std::this_thread::get_id() << " sleeps " << time << " milliseconds" << std::endl;
-        //}
-
-        ///// sleep, processing emulation
-        //std::this_thread::sleep_for(std::chrono::milliseconds(time));
-
-        /*/// output 
-        {
-            std::unique_lock<std::mutex> lock(cout_mutex_);
-            std::cout << "thread " << GetID() << " Data generated. ID: " << id << " Result: '" << value << "'" << std::endl;
-        }*/
+        const std::string value( generate_random_text() );
 
         lookuptable_.add_or_update_mapping(key, value);
-
-        /*/// output 
-        {
-            std::unique_lock<std::mutex> lock(cout_mutex_);
-            std::cout << "thread " << GetID() << " Data saved. ID: " << id << " Result: '" << value << "'" << std::endl;
-        }*/
-        
 
     }
 };
@@ -209,13 +147,13 @@ public:
 //////////////////////////
 
 template<>
-int Worker<int, std::string>::GenID()
+int worker<int, std::string>::generate_key()
 {
     return distributionID_(generator_);
 }
 
 template<>
-std::string Worker<std::string, std::string>::GenID()
+std::string worker<std::string, std::string>::generate_key()
 {
-    return GenerateRandomText(1,3);
+    return generate_random_text(1,3);
 }

@@ -75,12 +75,12 @@ void PrintResultingTable(const Type &m)
 
 void threadWorkerFunction(int id, threadsafe_cache::threadsafe_lookup_table<string, string> *lookup_table)
 {
-    Worker < std::string, std::string> worker(id, *lookup_table, cout_lock);
+    worker < std::string, std::string> worker(id, *lookup_table, cout_lock);
     while (!g_finish)
     {
         try
         {
-            worker.Action();
+            worker.action();
         }
         catch (const std::exception & e)
         {

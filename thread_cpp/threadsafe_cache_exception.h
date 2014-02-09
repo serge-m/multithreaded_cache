@@ -1,3 +1,6 @@
+#ifndef threadsafe_cache_exception_h__
+#define threadsafe_cache_exception_h__
+
 #include <exception>
 #include <string>
 
@@ -19,3 +22,4 @@ namespace threadsafe_cache
 
     };
 }
+#endif // threadsafe_cache_exception_h__
