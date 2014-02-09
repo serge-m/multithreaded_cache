@@ -6,6 +6,8 @@
 namespace
 {
     const char * dbname = "t5";
+    const char * id_field_name = "key";
+    const char * value_field_name = "data";
 }
 
 class DatabaseException : public std::exception
@@ -42,9 +44,7 @@ static int callback(void *data, int argc, char **argv, char **azColName){
 }
 
 static int callback_show_dp(void *data, int argc, char **argv, char **azColName){
-    int i;
-    
-    //for (i = 0; i<argc; i++)
+    //for (int i = 0; i<argc; i++)
     {
         std::cout
             << std::setw(10)
@@ -170,9 +170,7 @@ public:
         request
             << "select value from "
             << dbname 
-            << " where id = '"
-            << k
-            << "';";
+            << " where " << id_field_name << " = '" << k << "';";
         query_result qresult;
         connection_.execute(request.str().c_str(), my_callback, &qresult);
 
@@ -189,11 +187,8 @@ public:
         request 
             << "insert or replace into "
             << dbname
-            << " (id, value) values('"
-            << key 
-            << "', '" 
-            << value 
-            << "');";
+            << " ( " << id_field_name << ", " << value_field_name << ") " 
+            << "values('" << key << "', '" << value << "');";
         connection_.execute(request.str().c_str(), callback, "Writing data" );
     }
 
@@ -206,9 +201,9 @@ public:
     {
         std::stringstream request;
         request
-            << "select id, value from "
+            << "select " << id_field_name << ", " << value_field_name << " from "
             << dbname
-            << " order by id;";
+            << " order by " << id_field_name << ";";
         connection_.execute(request.str().c_str(), callback_show_dp, nullptr);
     }
 
@@ -237,8 +232,13 @@ public:
         /*std::string sqlDrop(std::string("drop table ") + dbname + ";");
         connection_.execute( sqlDrop.c_str(), callback, "Creating table");*/
         
-        std::string sqlCreate(std::string("create table if not exists ") + dbname + " ( id varchar, value text, primary key(id));");
-        connection_.execute(sqlCreate.c_str(), callback, "Creating table");
+        stringstream ss_sqlCreate;
+        ss_sqlCreate
+            << "create table if not exists "
+            << dbname
+            << " ( " << id_field_name << " varchar, " << value_field_name << " text, primary key(" << id_field_name << "));"
+            ;
+        connection_.execute(ss_sqlCreate.str().c_str(), callback, "Creating table");
         
         std::cout << "Table is created (or exists)" << "\n";
 
