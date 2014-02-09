@@ -37,6 +37,7 @@
 #include <condition_variable>
 
 #include <string>
+#include <sstream>
 #include "thread_safe_map.h"
 
 
@@ -160,31 +161,43 @@ void threadTimeoutSaver()
 /// ќн например, будет прост опечатать информацию о исключении
 void threadExceptionHandler()
 {
+
     // до тех пор, пока не будет получен сигнал
     while (!g_finish)
     {
-        std::unique_lock<std::mutex> locker(g_exception_mutex);
-        while (!g_finish && g_exceptions.empty()) // от ложных пробуждений
-            g_queuecheck.wait(locker);
-        
-        /// ≈сли нужно остановитьс€ после первого же исключени€
-        //g_finish = true; 
+        stringstream ss;
 
-        // если есть ошибки в очереди, обрабатывать их
-        for (auto &e : g_exceptions)
         {
-            try
+            std::unique_lock<std::mutex> locker(g_exception_mutex);
+            while (!g_finish && g_exceptions.empty()) // от ложных пробуждений
+                g_queuecheck.wait(locker);
+            
+            
+
+            /// ≈сли нужно остановитьс€ после первого же исключени€
+            //g_finish = true; 
+
+            // если есть ошибки в очереди, обрабатывать их
+            for (auto &e : g_exceptions)
             {
-                if (e != nullptr)
-                    std::rethrow_exception(e);
+                try
+                {
+                    if (e != nullptr)
+                        std::rethrow_exception(e);
+                }
+                catch (const std::exception &e)
+                {
+                    ss << "Processed exception:" << e.what() << std::endl;
+                }
             }
-            catch (const std::exception &e)
-            {
-                std::lock_guard<std::mutex> locker_cout(cout_lock);
-                std::cout << "Processed exception:" << e.what() << std::endl;
-            }
+            g_exceptions.clear();
         }
-        g_exceptions.clear();
+
+
+        {
+            std::lock_guard<std::mutex> locker_cout(cout_lock);
+            cout << ss.str();
+        }
         //g_notified = false;
     }
 
