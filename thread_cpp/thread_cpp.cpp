@@ -258,17 +258,6 @@ int main()
             std::lock_guard<mutex> lock(cout_lock);
             cout << "ERROR: Unknown command: " << input << "\n";
         }
-
-        /*if (input.length() == 1)
-        {
-        myChar = input[0];
-        break;
-        }*/
-
-        //cout << "Invalid character, please try again" << endl;
-
-
-        
     }
 
     g_finish = true;

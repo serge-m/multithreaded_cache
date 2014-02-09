@@ -56,30 +56,33 @@ private:
         static const int maxProcessingTime = 1000; /// in milliseconds
 
     private:
-        typedef std::pair<Key, Value> bucket_value;
-        typedef std::list<bucket_value> bucket_data;
+        typedef std::pair<Key, Value> bucket_value;                 /// тип для пары <key, value>
+        typedef std::list<bucket_value> bucket_data;                /// список из пар  <key, value>
     public:
-        typedef typename bucket_data::iterator bucket_iterator;
-        typedef typename bucket_data::const_iterator bucket_const_iterator;
-        typedef std::timed_mutex bucket_mutex;
+        typedef typename bucket_data::iterator bucket_iterator;             /// итератор для списка
+        typedef typename bucket_data::const_iterator bucket_const_iterator; /// константный итератор для списка
+        typedef std::timed_mutex bucket_mutex;                              /// тип мьютекса для защиты списка
     private:
+
     public: // разобраться, как еще можно. Заменить на private/ Исправить конвертацию в map
-        bucket_data data;
-        mutable bucket_mutex mutex;
-        Database<Key, Value> &database_;
-        std::mutex & cout_mutex_;
+        bucket_data data;                   /// список <ключ значение>
+        mutable bucket_mutex mutex;         /// мьютекс для защиты данных 
+        Database<Key, Value> &database_;    /// ссылка на базу данных, чтобы читать оттуда записи
+        std::mutex & cout_mutex_;           /// мьютекс для вывода на экран
         std::size_t const idx_;
 
         
     
     private:    
         /// Пробегаем по списку и ищем элемент с заданным ключом
-        bucket_const_iterator find_entry_for(Key const & key) const
-        {
-            return std::find_if(data.begin(), data.end(),
-                [&](bucket_value const & item){ return item.first == key;  });
-        }
+        // Константная версия 
+        //bucket_const_iterator find_entry_for(Key const & key) const
+        //{
+        //    return std::find_if(data.begin(), data.end(),
+        //        [&](bucket_value const & item){ return item.first == key;  });
+        //}
 
+        // Неконстантная версия 
         bucket_iterator find_entry_for(Key const & key)
         {
             return std::find_if(data.begin(), data.end(),
@@ -114,24 +117,6 @@ private:
             }
             ///////////////// pause, emulating delay/////////////////////////////////////////
         }
-
-        //unsigned __int64 millis_since_midnight()
-        //{
-        //    // current time
-        //    std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-
-        //    // get midnight
-        //    time_t tnow = std::chrono::system_clock::to_time_t(now);
-        //    tm *date = localtime(&tnow);
-        //    date->tm_hour = 0;
-        //    date->tm_min = 0;
-        //    date->tm_sec = 0;
-        //    auto midnight = std::chrono::system_clock::from_time_t(mktime(date));
-
-        //    // number of milliseconds between midnight and now, ie current time in millis
-        //    // The same technique can be used for time since epoch
-        //    return std::chrono::duration_cast<std::chrono::milliseconds>(now - midnight).count();
-        //}
 
         void echo_mutex_start_waiting(Key const &key)
         {
@@ -201,7 +186,7 @@ private:
                 if (!database_.LoadDataByKey(key, value)) 
                 {
                     value = default_value;
-                    /// Можно сразу записывать в заду пустое значение. Но не понятно, зачем
+                    /// Можно сразу записывать в базу пустое значение. Но не понятно, зачем
                     //database_.WriteData(key, default_value); 
                 }
                 data.push_back(bucket_value(key, value));
@@ -244,28 +229,7 @@ private:
             echo_mutex_released(key);
         }
 
-        /// не актуальный код
-        //void remove_mapping(Key const &key) // не используется
-        //{
-        //    //////////////////////////////////////////mutex//////////////////////////////////
-        //    /// Старый вариант без таймаута 
-        //    //std::lock_guard<bucket_mutex> lock(mutex); // Блокируем данный слот
-
-        //    /// Новый вариант
-        //    if (!mutex.try_lock_for(std::chrono::milliseconds(timeForWaitingMax)))
-        //    {
-        //        throw thread_timeout_exception("Timeout exception. Target key: " + key);
-        //    }
-        //    std::lock_guard<bucket_mutex> lock(mutex, std::adopt_lock);
-        //    //////////////////////////////////////////mutex//////////////////////////////////
-
-
-        //    bucket_iterator const found_entry = find_entry_for(key);
-        //    if (found_entry != data.end())
-        //    {
-        //        data.erase(found_entry);
-        //    }
-        //}
+      
     }; //class bucket_type
     ///////////////////////////////////////////////////////////////////////////
 
