@@ -72,7 +72,7 @@ const int g_autosave_timeout = 2000;
 const bool g_show_database_and_cache_on_save = true;
 
 /// Количество тредов-рабочих
-const int numWorkers = 30;
+const int numWorkers = 10;
 
 //////////////////////////////////////////////////////////////////////////
 /// **********************************************************************
